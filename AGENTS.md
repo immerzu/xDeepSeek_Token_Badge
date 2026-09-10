@@ -94,5 +94,9 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   (`model_configs[].file_feature.token_limit(_with_thinking)`, derzeit **890.880**; nicht 1 Mio.).
 - **Anzeige-Konvention:** dreistellig gerundet (`📊 217K / 891K  (24 %)`), Prozent ganzzahlig
   (`<1 %` unter 1 %), exakte Werte und Grenzquelle im Tooltip.
+- **Modell-Selbstauskünfte im Chat sind keine Messwerte:** Zeilen wie `[ 76% von 100% gefüllt]`
+  schreibt das Modell selbst in seinen Denkblock (Feld `fragments` der Nachricht) — sie überschätzen
+  den echten Füllstand stark (gemessen: 76 % behauptet vs. 20,61 % laut Server). Verlässlich ist nur
+  `accumulated_token_usage`. Nachrichtentexte liegen in `fragments` (es gibt kein `content`-Feld).
 - **Tests ohne Tampermonkey-Altversion** fahren: Profil mit Playwrights Default
   `--disable-extensions` starten (sonst beschreibt die installierte Altversion das Badge doppelt).

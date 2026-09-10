@@ -106,7 +106,47 @@ Alle 5 Checks grün.
   Screenshot-Kontrolle der Badge-Breite; GF live auf **1.0.4** (12:09:54), Code und Zusatzinfos
   gegengeprüft.
 
-## 7. Wichtige Codeanker (für künftige Änderungen)
+## 7. Nachtrag — „[ 76 % von 100 % gefüllt]" im Chat vs. Badge (21 %)
+
+**Frage des Nutzers:** Im Chat steht über der Agenten-Ausgabe `[ 76% von 100% gefüllt]`, das Badge zeigt
+nur 21 %. Warum der große Unterschied?
+
+**Befund: Die Zeile ist eine Selbsteinschätzung des Modells, keine Messung.**
+
+Belege (Chat `a2d146c5-…`, „LoloChat_06", live gemessen):
+
+1. **DOM-Pfad des Markers:** `span → p.ds-markdown-paragraph → div.ds-markdown.ds-assistant-message-main-content → div.ds-message`
+   — er steht im **Denkblock der Assistenten-Nachricht**, direkt nach der Überschrift
+   „7 Sekunden nachgedacht …" bzw. „3 Sekunden nachgedacht …", unmittelbar vor der eigentlichen Antwort.
+2. **Datenherkunft:** Die History-Antwort enthält **kein** Prozentfeld. Der Marker liegt im Feld
+   **`fragments`** (13.948 Zeichen, `marker=true`). Die API-Felder einer Nachricht sind:
+   `message_id, parent_id, model, role, thinking_enabled, ban_edit, ban_regenerate, status,
+   incomplete_message, accumulated_token_usage, feedback, inserted_at, search_enabled, fragments,
+   has_pending_fragment, auto_continue, search_triggered` — es gibt **kein** `content`/`reasoning_content`;
+   Text steht in `fragments`.
+3. **Kein Fremd-Tool:** Der Marker erscheint auch mit **deaktivierten Extensions** und **ohne**
+   injiziertes Skript → reiner Chat-Inhalt, kein Overlay/Userscript.
+4. **Gegenrechnung:**
+
+| Selbstauskunft im Chat | beanspruchte Token (bei Limit 890.880) | Serverwert (max) | Faktor |
+|---|---|---|---|
+| `71 %` | 632.525 | 183.652 (= 20,61 %) | 3,4× |
+| `76 %` | 677.069 | 183.652 (= 20,61 %) | 3,7× |
+
+5. **Serververlauf (22 Nachrichten, lückenlos, in sich schlüssig):**
+   `25249, 25599, 43669, 44440, 59891, 60916, 75940, 76674, 89421, 90317, 102974, 104653, 120368,
+   122201, 137485, 138396, 154730, 155444, 171776, 171776, 180762, 183652`
+   → je Turn ~15.000 Token Zuwachs; der letzte Wert ist das Maximum (183.652 = 20,61 %).
+
+**Ursache des Unterschieds:** Ein LLM kann seine Kontextauslastung nicht messen — es hat keinen Zugriff
+auf Tokenzähler und schätzt den „Gesprächsumfang" (hier offenbar stark überschätzend, weil der Kontext
+durch BDS-Prompt-Blöcke dicht wirkt). Die Zahl ist Dekoration/Schätzung, kein Messwert.
+
+**Konsequenz:** Dem Badge-Wert (Serverfeld `accumulated_token_usage`) ist zu vertrauen; die
+`[ X % von 100 % gefüllt]`-Zeile im Chat ist unzuverlässig. Soll ein Agent den Füllstand berichten,
+muss man ihm den echten Wert vorgeben (Prompt-Injection aus dem Badge) statt ihn schätzen zu lassen.
+
+## 8. Wichtige Codeanker (für künftige Änderungen)
 
 | Zweck | Wert |
 |---|---|
@@ -119,7 +159,7 @@ Alle 5 Checks grün.
 | Netzwerkweg | `XMLHttpRequest` (fetch nur Absicherung) |
 | Merker | `localStorage.xdsTokenBadge.sessionTokens` |
 
-## 8. Umgebungs-Erkenntnisse (wiederverwendbar)
+## 9. Umgebungs-Erkenntnisse (wiederverwendbar)
 
 - **GF-Auto-Sync ist NICHT webhook-basiert:** kein GitHub-Hook im Repo
   (`gh api repos/immerzu/xDeepSeek_Token_Badge/hooks` → leer) → GF zieht periodisch.
@@ -141,7 +181,7 @@ Alle 5 Checks grün.
 - **Meine Fehlspur:** Ein TM-Check über `GM_info` / `script[src*=tampermonkey]` ist untauglich
   (beides existiert so nicht) — er meldete fälschlich „kein TM".
 
-## 9. Offene Punkte
+## 10. Offene Punkte
 
 - [ ] Aktiven **Zweig** statt Maximum zählen (parent_id-Kette + `currentChildIndex`).
 - [ ] **Datei-Tokens** berücksichtigen (App addiert `getFilesTokenCount`).
@@ -150,7 +190,7 @@ Alle 5 Checks grün.
 - [ ] Optional: Wert aus SSE-Deltas (`/api/v0/chat/completion`) mitlesen → live statt nur beim Load.
 - [ ] Optional: GF-Tags (`deepseek`, `token`, `context`, `badge`, `chat`) im GF-UI ergänzen.
 
-## 10. Commits dieser Session
+## 11. Commits dieser Session
 
 | Commit | Inhalt |
 |---|---|
