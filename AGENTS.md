@@ -69,7 +69,8 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   (schneidet History-Antworten mit: `cache_control`, Nachrichtenanzahl, Tokenfelder),
   `deepseek-limits.mjs` (echte Kontextgrenzen), `deepseek-bundle-dump.mjs` (App-Bundles/Endpunkte),
   `deepseek-open-chat.mjs` (einzelnen Chat öffnen und Badge prüfen, Fenster bleibt offen),
-  `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse: Tokenverlauf, Marker, Nachrichtenfelder).
+  `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse: Tokenverlauf, Marker, Nachrichtenfelder),
+  `deepseek-live-send.mjs` (sendet eine Testnachricht und prüft, ob das Badge ohne Reload aktualisiert).
   **Ablauf, Befehle und erwartete Checks: `memory/TESTEN-userscript-deepseek.md`**
 - Skills: `greasy-fork-publish`, `userscript-beschreibungen-immerzu`, `github-immerzu`,
   `playwright-browser`, `tampermonkey-install-update`
@@ -100,5 +101,10 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   schreibt das Modell selbst in seinen Denkblock (Feld `fragments` der Nachricht) — sie überschätzen
   den echten Füllstand stark (gemessen: 76 % behauptet vs. 20,61 % laut Server). Verlässlich ist nur
   `accumulated_token_usage`. Nachrichtentexte liegen in `fragments` (es gibt kein `content`-Feld).
+- **Nach dem Senden lädt die App die History NICHT neu** — der Zustand kommt aus dem SSE-Stream
+  `/api/v0/chat/completion`, und der enthält `accumulated_token_usage` nur als Startwert `0` (WIP),
+  nie den finalen Stand. Der Badge-Wert muss deshalb am **Ende des Antwort-Streams** selbst
+  nachgeladen werden (v1.0.5: `refreshAfterAnswer`). Wer Hook-Logik ergänzt, muss diesen Pfad
+  mitdenken — sonst hängt die Anzeige wieder an `F5`.
 - **Tests ohne Tampermonkey-Altversion** fahren: Profil mit Playwrights Default
   `--disable-extensions` starten (sonst beschreibt die installierte Altversion das Badge doppelt).

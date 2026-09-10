@@ -155,7 +155,52 @@ muss er dem Modell vorgegeben werden (z. B. aus dem Badge/der API), statt es sch
 `[ X % von 100 % gefüllt]`-Zeile im Chat ist unzuverlässig. Soll ein Agent den Füllstand berichten,
 muss man ihm den echten Wert vorgeben (Prompt-Injection aus dem Badge) statt ihn schätzen zu lassen.
 
-## 8. Wichtige Codeanker (für künftige Änderungen)
+## 8. Nachtrag v1.0.5 — Badge aktualisierte sich nach einer Antwort nicht (nur nach F5)
+
+**Symptom (Nutzer):** Nach einer Antwort des Assistenten blieb der Badge-Wert stehen; erst `F5` (oder
+Chat-Wechsel) brachte den neuen Stand.
+
+**Messung (Livetest mit Testnachricht in einem neuen Chat, `deepseek-live-send.mjs`):**
+
+Request-Timeline nach dem Senden:
+
+```
++16205ms request  /api/v0/chat/completion          ← SSE-Antwortstrom
++16213ms request  /api/v0/chat_session/create
++16513ms response /api/v0/chat/completion
++16527ms response /api/v0/chat_session/create
+… danach 80 s lang KEINE history_messages-Anfrage
+```
+
+Der SSE-Stream enthält `accumulated_token_usage` **nur einmal mit Wert `0`** (Nachricht im Status
+`WIP`) — den finalen Stand liefert er nie:
+
+```
+data: {"v":{"response":{…,"status":"WIP","accumulated_token_usage":0,…}}}
+```
+
+**Root Cause:** Nach dem Senden lädt die App die History **nicht** neu (sie baut den Zustand aus dem
+Stream auf), und der Stream transportiert den finalen Tokenstand nicht. Das Skript hing aber
+ausschließlich an `history_messages` → nach einer Antwort passierte nichts. (Bis v1.0.4 war das
+Verhalten sogar dokumentiert: „aktualisiert sich nur, wenn DeepSeek die History lädt".)
+
+**Fix (v1.0.5, Commit `d2c7b2c`):** Am **Ende des Antwort-Streams** (XHR-`load` auf
+`/chat/completion` bzw. fetch-Ende) lädt das Skript die History **selbst** nach:
+`GET /api/v0/chat/history_messages?chat_session_id=…` ohne Cache-Parameter, mit den per
+`setRequestHeader` gesammelten Session-Headern. Zeitplan: 1,5 s nach Stream-Ende; bleibt der Wert
+unverändert (oder leer), einmal nach 3 s erneut. Drossel `REFRESH_DELAY` = 2,5 s.
+Session-ID aus dem POST-Body (`chat_session_id`), sonst aus der URL, sonst `currentSession`.
+
+**Verifikation (ohne Reload, im laufenden Chat):**
+
+```
+neuer Chat:   vor dem Senden  📊 --          → nach der Antwort  📊 74 / 891K  (<1 %)
+zweite Antwort:               📊 74 / 891K   →                    📊 113 / 891K (<1 %)
+```
+
+Der Merker (`localStorage`) wurde jeweils mitgeschrieben; GF live auf 1.0.5 (13:24:31).
+
+## 9. Wichtige Codeanker (für künftige Änderungen)
 
 | Zweck | Wert |
 |---|---|
@@ -168,7 +213,7 @@ muss man ihm den echten Wert vorgeben (Prompt-Injection aus dem Badge) statt ihn
 | Netzwerkweg | `XMLHttpRequest` (fetch nur Absicherung) |
 | Merker | `localStorage.xdsTokenBadge.sessionTokens` |
 
-## 9. Umgebungs-Erkenntnisse (wiederverwendbar)
+## 10. Umgebungs-Erkenntnisse (wiederverwendbar)
 
 - **GF-Auto-Sync ist NICHT webhook-basiert:** kein GitHub-Hook im Repo
   (`gh api repos/immerzu/xDeepSeek_Token_Badge/hooks` → leer) → GF zieht periodisch.
@@ -190,7 +235,7 @@ muss man ihm den echten Wert vorgeben (Prompt-Injection aus dem Badge) statt ihn
 - **Meine Fehlspur:** Ein TM-Check über `GM_info` / `script[src*=tampermonkey]` ist untauglich
   (beides existiert so nicht) — er meldete fälschlich „kein TM".
 
-## 10. Offene Punkte
+## 11. Offene Punkte
 
 - [ ] Aktiven **Zweig** statt Maximum zählen (parent_id-Kette + `currentChildIndex`).
 - [ ] **Datei-Tokens** berücksichtigen (App addiert `getFilesTokenCount`).
@@ -199,7 +244,7 @@ muss man ihm den echten Wert vorgeben (Prompt-Injection aus dem Badge) statt ihn
 - [ ] Optional: Wert aus SSE-Deltas (`/api/v0/chat/completion`) mitlesen → live statt nur beim Load.
 - [ ] Optional: GF-Tags (`deepseek`, `token`, `context`, `badge`, `chat`) im GF-UI ergänzen.
 
-## 11. Commits dieser Session
+## 12. Commits dieser Session
 
 | Commit | Inhalt |
 |---|---|
@@ -209,6 +254,8 @@ muss man ihm den echten Wert vorgeben (Prompt-Injection aus dem Badge) statt ihn
 | `f3206bf` | Memory: v1.0.4 nachgetragen |
 | `cc57f46` | Memory konsolidiert (Analyse-, Testrezept-, Index-Dokument) + `AGENTS.md` erweitert |
 | `4fd1dfe` | Memory: Analyse der Modell-Selbstauskunft `[ X % von 100 % gefüllt]` + `fragments`-Feld |
+| `be712bc` | Memory: Werkzeuge/Befunde der Chat-Analyse nachgetragen |
+| `d2c7b2c` | v1.0.5 — Nachladen am Ende des Antwort-Streams (Badge aktualisiert ohne F5) |
 
 Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
 Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:

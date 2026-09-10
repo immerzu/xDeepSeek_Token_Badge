@@ -23,6 +23,7 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-sniff.mjs` | Grober Mitschnitt aller JSON-Antworten (Bestandsaufnahme, Endpunkte entdecken). |
 | `deepseek-open-chat.mjs` | Öffnet eine **bestimmte Chat-URL** (`DS_CHAT_URL`), injiziert optional die lokale `.user.js` und liest Badge + Tooltip + `history_messages` aus. Das Fenster **bleibt offen** (zum Anschauen; `DS_KEEP_OPEN=0` schließt es, `job_kill` beendet). |
 | `deepseek-analyze-context.mjs` | Tiefenanalyse eines Chats: kompletter Seitentext (Datei), Prozent-Marker im Chatverlauf, **alle** API-Nachrichten mit Tokenstand/Rolle/`fragments`-Flags, DOM-Nachrichtenzahl, Badge-Zustand. |
+| `deepseek-live-send.mjs` | **Sendet eine echte Testnachricht** und protokolliert Request-/Response-Timeline, SSE-Frames (Suche nach `accumulated_token_usage`) und den Badge-Zustand alle 5 s → belegt, ob sich das Badge ohne Reload aktualisiert. `DS_URL` (leer = neuer Chat), `DS_MSG`, `DS_WAIT`. |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
 
@@ -112,6 +113,24 @@ node deepseek-analyze-context.mjs 2>&1 | Select-String -Pattern 'AN:TOKENS|AN:RO
 
 Damit lässt sich z. B. klären, ob eine im Chat angezeigte Prozentangabe aus den Serverdaten stammt
 oder vom Modell selbst geschrieben wurde (Details in der Analyse, Abschnitt 7).
+
+## Ablauf G — Aktualisierung nach einer Antwort prüfen (Sende-Test)
+
+```powershell
+$dbg = "$env:TEMP\xds-debug-live.user.js"
+(Get-Content $src -Raw) -replace 'const DEBUG              = false','const DEBUG              = true' | Set-Content $dbg -Encoding UTF8
+
+$env:DS_SCRIPT = $dbg
+$env:DS_OUT    = "$env:TEMP\ds-live-send.json"
+$env:DS_WAIT   = "75000"
+$env:DS_URL    = ""                 # leer = neuer Chat (schont den Nutzer-Chat); sonst Chat-URL
+$env:DS_MSG    = "Antworte bitte nur mit dem Wort: OK"
+node deepseek-live-send.mjs
+```
+
+Erwartet (v1.0.5): Badge zeigt **ohne Reload** innerhalb von ~5 s nach der Antwort einen Wert
+(`📊 74 / 891K  (<1 %)`), bei einer zweiten Antwort einen höheren (`📊 113 / 891K`).
+Vor v1.0.5 blieb `📊 --` stehen, bis `F5` gedrückt wurde.
 
 ## Ablauf E — Release + GF-Verifikation
 
