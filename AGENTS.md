@@ -68,3 +68,10 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
 - Neu-Anlegen-URL ist `https://greasyfork.org/de/script_versions/new`
   (NICHT `/de/scripts/new` → 404).
 - GF hat kein Feld zum Umbenennen: der Name kommt beim Upload/Sync aus `@name`.
+- **GF-Auto-Sync ist NICHT webhook-basiert** (im Repo existiert kein GitHub-Hook) → GF zieht die
+  Sync-Quelle nur **periodisch**. Sofort auslösen mit
+  `node C:\Users\lolo\.dsh\browser-tools\gf-admin-sync.mjs --script-url https://greasyfork.org/de/scripts/595207-xdeepseek-token-badge --sync-url <raw .user.js> --info-sync-url <raw description.md>`
+  (Achtung: `--script-url` ist die **GF-Skriptseite**, nicht die Raw-URL — sonst baut das Tool
+  `<raw-url>/admin` und scheitert mit „Admin-Formular nicht gefunden").
+- **CLI-Argumente erreichen Node bei `pwsh`-Aufrufen nicht** (kein `--out`/`--script` in `process.argv`);
+  Werkzeuge deshalb über **Umgebungsvariablen** steuern (z. B. `DS_VERIFY_SCRIPT`, `DS_VERIFY_OUT`).
