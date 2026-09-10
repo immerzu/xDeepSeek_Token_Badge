@@ -18,5 +18,9 @@ Dieser Ordner ist das dauerhafte Gedächtnis des Projekts. **Vor** Arbeiten am S
 - Badge zeigt dreistellig gerundet: `📊 217K / 891K  (24 %)`, exakte Werte im Tooltip.
 - Bekannte Grenzen: Maximum über alle Nachrichten (nicht aktiver Zweig), Datei-Tokens nicht enthalten,
   Wert nicht live zwischen zwei History-Ladevorgängen — Details in der Analyse.
+- **Verlässlichkeit:** Der Badge-Wert ist der Serverwert (`accumulated_token_usage`). Im Chat
+  auftauchende Zeilen wie `[ 76 % von 100 % gefüllt]` sind **Modell-Selbstauskünfte** im Denkblock
+  (Feld `fragments`) und messen nichts — sie lagen im geprüften Fall um Faktor ~3,7 zu hoch.
+- Nachrichtentexte liegen in `fragments`; die API kennt kein `content`/`reasoning_content`.
 - Versionskopien liegen in `!Ausgabe/` (gitignored), Namensschema
   `xdeepseek-token-badge-v<version>.user.js`.

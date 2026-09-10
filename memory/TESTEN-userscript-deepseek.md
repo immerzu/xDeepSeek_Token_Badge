@@ -21,6 +21,8 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-limits.mjs` | Liest die echten Kontextgrenzen (`file_feature.token_limit`, `token_limit_with_thinking`, `normal_history_and_file_token_limit`). Login-frei. |
 | `deepseek-bundle-dump.mjs` | Lädt die App-JS-Bundles über die Browser-Session (login-frei) und sucht nach Endpunkten/Feldern. |
 | `deepseek-sniff.mjs` | Grober Mitschnitt aller JSON-Antworten (Bestandsaufnahme, Endpunkte entdecken). |
+| `deepseek-open-chat.mjs` | Öffnet eine **bestimmte Chat-URL** (`DS_CHAT_URL`), injiziert optional die lokale `.user.js` und liest Badge + Tooltip + `history_messages` aus. Das Fenster **bleibt offen** (zum Anschauen; `DS_KEEP_OPEN=0` schließt es, `job_kill` beendet). |
+| `deepseek-analyze-context.mjs` | Tiefenanalyse eines Chats: kompletter Seitentext (Datei), Prozent-Marker im Chatverlauf, **alle** API-Nachrichten mit Tokenstand/Rolle/`fragments`-Flags, DOM-Nachrichtenzahl, Badge-Zustand. |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
 
@@ -91,6 +93,26 @@ $t = Get-Content $f.FullName -Raw
 
 Damit lassen sich Feldnamen, Endpunkte und Semantik belegen, **bevor** man etwas ändert.
 
+## Ablauf F — Einen bestimmten Chat ansehen oder analysieren
+
+```powershell
+# a) Chat öffnen und Badge prüfen (Fenster bleibt offen, max. 10 Min)
+$env:DS_CHAT_URL  = "https://chat.deepseek.com/a/chat/s/<SESSION-ID>"
+$env:DS_SCRIPT    = "F:\001_Coding_Projekte\xDeepSeek_Token_Badge\xdeepseek-token-badge.user.js"
+$env:DS_SHOT      = "$env:TEMP\ds-chat.png"
+$env:DS_OUT       = "$env:TEMP\ds-chat-open.json"
+$env:DS_KEEP_OPEN = "1"
+node deepseek-open-chat.mjs
+
+# b) Tiefenanalyse: Tokenverlauf, Marker im Chattext, Nachrichtenfelder
+$env:DS_TEXT = "$env:TEMP\ds-chat-text.txt"
+$env:DS_OUT  = "$env:TEMP\ds-chat-analyze.json"
+node deepseek-analyze-context.mjs 2>&1 | Select-String -Pattern 'AN:TOKENS|AN:ROW|AN:MARKER|AN:DOM_COUNTS'
+```
+
+Damit lässt sich z. B. klären, ob eine im Chat angezeigte Prozentangabe aus den Serverdaten stammt
+oder vom Modell selbst geschrieben wurde (Details in der Analyse, Abschnitt 7).
+
 ## Ablauf E — Release + GF-Verifikation
 
 ```powershell
@@ -131,3 +153,11 @@ Invoke-RestMethod "https://greasyfork.org/de/scripts/595207.json" | Select-Objec
   DEBUG-Spam (nur Metablock-Version und Doku ändern sich).
 - **Badge-Format** ist Konvention: dreistellig gerundet (`192K / 891K`), Prozent ganzzahlig
   (`<1 %` unter 1 %), exakte Werte im Tooltip.
+- **`DS_SCRIPT` leer lassen heißt: kein Refetch.** Bei warmem Cache liefert der Server dann nur
+  `MERGE` mit **0 Nachrichten** → der Report enthält keine Nachrichtendaten (genau dieser Fehler ist
+  bei einer Analyse passiert). Für Nachrichteninhalte immer ein Skript injizieren (das den Refetch
+  auslöst) oder den Cache kalt erwischen.
+- **Das DOM ist virtualisiert:** gerendert sind nur die sichtbaren ~4 Nachrichten; die API-History
+  enthält dagegen alle (im Beispiel 22). Aussagen über den gesamten Verlauf nur aus der API ableiten.
+- **Nachrichtentexte liegen in `fragments`** (Objekt), es gibt kein `content`/`reasoning_content` —
+  Marker-Suchen im Text müssen über `fragments` laufen.

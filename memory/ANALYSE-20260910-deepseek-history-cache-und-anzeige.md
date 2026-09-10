@@ -137,10 +137,19 @@ Belege (Chat `a2d146c5-…`, „LoloChat_06", live gemessen):
    `25249, 25599, 43669, 44440, 59891, 60916, 75940, 76674, 89421, 90317, 102974, 104653, 120368,
    122201, 137485, 138396, 154730, 155444, 171776, 171776, 180762, 183652`
    → je Turn ~15.000 Token Zuwachs; der letzte Wert ist das Maximum (183.652 = 20,61 %).
+6. **Das DOM ist virtualisiert:** gerendert waren nur **4** Nachrichten (`div.ds-message`), davon
+   2 Assistenten mit Marker — die API lieferte **22**. Aussagen über einen ganzen Verlauf daher
+   ausschließlich aus der API-History ableiten, nie aus dem DOM.
 
 **Ursache des Unterschieds:** Ein LLM kann seine Kontextauslastung nicht messen — es hat keinen Zugriff
 auf Tokenzähler und schätzt den „Gesprächsumfang" (hier offenbar stark überschätzend, weil der Kontext
 durch BDS-Prompt-Blöcke dicht wirkt). Die Zahl ist Dekoration/Schätzung, kein Messwert.
+
+**Umfeld-Hinweis:** Der Nutzer betreibt ein eigenes Agent-System (**BDS / Better DeepSeek**), das
+Prompt-Blöcke wie `<BDS:memory_calls importance="always">` und Auftrags-/Formatregeln in die Chats
+injiziert. Die Selbstauskunft `[ X % von 100 % gefüllt]` ist sehr wahrscheinlich eine per Prompt
+angeforderte Statuszeile — sie wird vom Modell aber frei geschätzt. Wenn dieser Wert gebraucht wird,
+muss er dem Modell vorgegeben werden (z. B. aus dem Badge/der API), statt es schätzen zu lassen.
 
 **Konsequenz:** Dem Badge-Wert (Serverfeld `accumulated_token_usage`) ist zu vertrauen; die
 `[ X % von 100 % gefüllt]`-Zeile im Chat ist unzuverlässig. Soll ein Agent den Füllstand berichten,
@@ -198,5 +207,12 @@ muss man ihm den echten Wert vorgeben (Prompt-Injection aus dem Badge) statt ihn
 | `c87d64a` | Doku: GF-Sync ohne Webhook, Node-CLI-Args, `!Ausgabe`-Regel |
 | `7fa0f3b` | v1.0.4 — Kontextgrenze aus Settings (890.880) + dreistellige Anzeige + Doku |
 | `f3206bf` | Memory: v1.0.4 nachgetragen |
+| `cc57f46` | Memory konsolidiert (Analyse-, Testrezept-, Index-Dokument) + `AGENTS.md` erweitert |
+| `4fd1dfe` | Memory: Analyse der Modell-Selbstauskunft `[ X % von 100 % gefüllt]` + `fragments`-Feld |
+
+Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
+Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:
+Tokenverlauf, Marker-Suche, Nachrichtenfelder, DOM-Zählung) — dokumentiert in
+[`TESTEN-userscript-deepseek.md`](TESTEN-userscript-deepseek.md).
 
 Testrezept für künftige Änderungen: siehe [`TESTEN-userscript-deepseek.md`](TESTEN-userscript-deepseek.md).
