@@ -1,0 +1,133 @@
+# TESTEN — xDeepSeek Token Badge (Rezept für künftige Änderungen)
+
+Wie eine Skriptänderung **am echten DeepSeek-Chat** geprüft wird, ohne den Nutzer-Browser (Yandex)
+zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort liegt auch
+`node_modules` mit `playwright-core`) und nutzen das Profil `reasonix-profil`
+(`C:\Users\lolo\AppData\Local\ms-playwright-mcp\reasonix-profil`).
+
+## Voraussetzungen
+
+- Node ≥ 22; Chromium unter `…\ms-playwright\chromium-1234\chrome-win64\chrome.exe` (siehe `lib.mjs`).
+- Im Profil muss ein **DeepSeek-Login** bestehen. Läuft die Session ab, landet die App auf
+  `/sign_in` (`localStorage.userToken.value === null`) → **nur der Nutzer** kann sich neu anmelden.
+- Kein zweiter Playwright-Lauf gleichzeitig (Profil-Lock: „Profile in use").
+
+## Werkzeuge
+
+| Werkzeug | Zweck |
+|---|---|
+| `deepseek-sniff-chat.mjs` | Wartet auf Login, protokolliert `history_messages` (URL mit Query, `cache_control`, Nachrichtenanzahl, Tokenfelder) bei mehreren Chat-Wechseln + Reload. |
+| `deepseek-verify-fix.mjs` | **Hauptwerkzeug:** injiziert eine lokale `.user.js` als document-start-Skript, prüft Badge-Texte an definierten Schritten, optional Screenshot des Badges. |
+| `deepseek-limits.mjs` | Liest die echten Kontextgrenzen (`file_feature.token_limit`, `token_limit_with_thinking`, `normal_history_and_file_token_limit`). Login-frei. |
+| `deepseek-bundle-dump.mjs` | Lädt die App-JS-Bundles über die Browser-Session (login-frei) und sucht nach Endpunkten/Feldern. |
+| `deepseek-sniff.mjs` | Grober Mitschnitt aller JSON-Antworten (Bestandsaufnahme, Endpunkte entdecken). |
+
+## Ablauf A — Skriptänderung verifizieren (Standard)
+
+```powershell
+# 1. Syntax prüfen
+node --check "F:\001_Coding_Projekte\xDeepSeek_Token_Badge\xdeepseek-token-badge.user.js"
+
+# 2. Debug-Kopie mit DEBUG=true erzeugen (Logs mitlesen)
+$src = "F:\001_Coding_Projekte\xDeepSeek_Token_Badge\xdeepseek-token-badge.user.js"
+$dbg = "$env:TEMP\xds-debug.user.js"
+(Get-Content $src -Raw) -replace 'const DEBUG              = false','const DEBUG              = true' | Set-Content $dbg -Encoding UTF8
+
+# 3. Lauf starten (Umgebungsvariablen! CLI-Argumente kommen hier NICHT an)
+$env:DS_VERIFY_SCRIPT = $dbg
+$env:DS_VERIFY_OUT    = "$env:TEMP\ds-verify.json"
+$env:DS_VERIFY_SHOT   = "$env:TEMP\ds-badge.png"
+node deepseek-verify-fix.mjs            # workdir: C:\Users\lolo\.dsh\browser-tools
+
+# 4. Logs + Netzwerk auswerten
+$r = Get-Content "$env:TEMP\ds-verify.json" -Raw | ConvertFrom-Json
+$r.consoleLines | Where-Object { $_ -match 'TokenBadge' }
+$r.network | Format-Table cacheControl, messages, max, url -AutoSize
+
+# 5. Optik prüfen (Badge-Breite)
+#    read_image auf $env:TEMP\ds-badge.png
+```
+
+Erwartete Endausgabe des Laufs: `VERIFY:CHECKS {...}` mit allen fünf Werten `true`:
+
+```
+chatA_hasValue, chatB_hasValue, chatA_differsFromB, afterReload_notEmpty, afterReloadEarly_notEmpty
+```
+
+Zusätzlich muss im Netzwerkprotokoll für jeden Chat ein Paar stehen:
+`MERGE (0 msgs)` → **`REFETCH` ohne `cache_version`** mit `REPLACE` und Tokenwerten.
+
+Realistische Laufzeit: ~90–120 s (Fenster ist sichtbar; nicht schließen).
+
+## Ablauf B — API-Verhalten beobachten (ohne Skriptänderung)
+
+```powershell
+$env:DS_VERIFY_OUT = "$env:TEMP\ds-chat-sniff.json"   # (sniff-chat nutzt --out/ENV je Version)
+node deepseek-sniff-chat.mjs --login-wait 300000 --clicks 3   # Achtung: Args ggf. wirkungslos → Defaults prüfen
+```
+
+Nützlich, um zu sehen, ob DeepSeek wieder etwas geändert hat (Endpunkt, `cache_control`,
+Nachrichtenanzahl, Tokenfelder).
+
+## Ablauf C — Kontextgrenzen prüfen
+
+```powershell
+$env:DS_LIMITS_OUT = "$env:TEMP\ds-limits.json"
+node deepseek-limits.mjs
+```
+
+Erwartet (Stand 2026-09-10): alle Modelle `token_limit = token_limit_with_thinking = 890880`;
+`normal_history_and_file_token_limit = 890880`; `input_character_limit = 2621440`.
+
+## Ablauf D — App-Code befragen (login-frei)
+
+```powershell
+node deepseek-bundle-dump.mjs --dir "$env:TEMP\ds-bundle"     # lädt die Bundles
+$f = Get-ChildItem "$env:TEMP\ds-bundle\02-main*.js" | Select-Object -First 1
+$t = Get-Content $f.FullName -Raw
+[regex]::Matches($t, '"/api/v0/[a-z0-9_/\-]+"') | ForEach-Object { $_.Value } | Sort-Object -Unique
+# gezielt: accumulated_token_usage, cache_control, file_feature, getTokenConfig
+```
+
+Damit lassen sich Feldnamen, Endpunkte und Semantik belegen, **bevor** man etwas ändert.
+
+## Ablauf E — Release + GF-Verifikation
+
+```powershell
+# 1. Version im Metablock erhöhen, CHANGELOG, Doku, !Ausgabe-Kopie (Hash-Vergleich!)
+Copy-Item $src "F:\001_Coding_Projekte\xDeepSeek_Token_Badge\!Ausgabe\xdeepseek-token-badge-v1.0.X.user.js" -Force
+(Get-FileHash $src).Hash -eq (Get-FileHash "…\!Ausgabe\xdeepseek-token-badge-v1.0.X.user.js").Hash
+
+# 2. Commit + Push
+git -C "F:\001_Coding_Projekte\xDeepSeek_Token_Badge" add -A
+git -C "F:\001_Coding_Projekte\xDeepSeek_Token_Badge" commit -m "v1.0.X: …"
+git -C "F:\001_Coding_Projekte\xDeepSeek_Token_Badge" push origin main
+
+# 3. GF-Sync anstoßen (kein Webhook im Repo!)
+node C:\Users\lolo\.dsh\browser-tools\gf-admin-sync.mjs `
+  --script-url "https://greasyfork.org/de/scripts/595207-xdeepseek-token-badge" `
+  --sync-url "https://raw.githubusercontent.com/immerzu/xDeepSeek_Token_Badge/main/xdeepseek-token-badge.user.js" `
+  --info-sync-url "https://raw.githubusercontent.com/immerzu/xDeepSeek_Token_Badge/main/description.md"
+
+# 4. Version prüfen
+Invoke-RestMethod "https://greasyfork.org/de/scripts/595207.json" | Select-Object version, code_updated_at
+# Zusatz: GF-Code-Seite auf neue Funktionsnamen prüfen (/code), Zusatzinfos auf der Skriptseite
+```
+
+## Fallstricke (alle schon einmal getroffen)
+
+- **CLI-Argumente kommen bei Node nicht an** → immer Umgebungsvariablen (`DS_VERIFY_*`, `DS_LIMITS_OUT`).
+  Sonst laufen Werkzeuge still mit Default-Pfaden.
+- **Tampermonkey-Altversion:** Für Tests das Profil **ohne** `ignoreDefaultArgs` starten (Playwrights
+  Default `--disable-extensions` bleibt aktiv) → keine parallele v1.0.x-Instanz, die das Badge doppelt
+  beschreibt. `deepseek-verify-fix.mjs` macht das bereits so.
+- **Fenster nicht schließen:** Bricht der Lauf ab (`Target page, context or browser has been closed`),
+  ist der Test ungültig (z. B. `tm-import.mjs`).
+- **Login abgelaufen:** `VERIFY:LOGGED_IN false` → Nutzer muss sich im Fenster anmelden (Skript wartet
+  bis `--login-wait`).
+- **fetch vs. XHR:** Die App nutzt XHR. Änderungen an der Extraktion immer **beide** Pfade prüfen;
+  ein Log `fetch → …` bedeutet, dass der fetch-Pfad greift (kommt derzeit nicht vor).
+- **Debug-Kopien** liegen in `%TEMP%` und werden **nicht** committet; die Release-Datei bleibt ohne
+  DEBUG-Spam (nur Metablock-Version und Doku ändern sich).
+- **Badge-Format** ist Konvention: dreistellig gerundet (`192K / 891K`), Prozent ganzzahlig
+  (`<1 %` unter 1 %), exakte Werte im Tooltip.
