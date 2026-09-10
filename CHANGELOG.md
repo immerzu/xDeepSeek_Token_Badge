@@ -7,6 +7,26 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.0.6] — 2026-09-10
+
+### Geändert
+- **Nachladen nach einer Antwort robuster:** statt zwei Versuchen (1,5 s / 3 s) jetzt **fünf Versuche
+  mit wachsendem Abstand** (1,5 / 3 / 6 / 10 / 15 s ≈ 35 s), weil der Server den neuen Tokenstand
+  verzögert fortschreibt. Zusätzlich prüft das Skript die **Nachrichtenzahl**: Enthält die History
+  keine neue Nachricht, wird nicht weiter nachgeladen (spart Requests).
+- **Selbstdiagnose im Tooltip:** Die Zeile „Nachladen nach Antwort: …" zeigt, was der Refresh tut
+  (`ok (Versuch 1): 183.652 Token`, `Versuch 3: 183.652 Token (unverändert), Nachrichten 22`,
+  `aufgegeben nach 5 Versuchen`, `abgebrochen: keine Session-ID erkannt`). Damit lässt sich ohne
+  Konsole klären, warum eine Zahl stehen bleibt.
+
+### Gemessen (zur Einordnung)
+- Der neue Tokenstand ist ~2 s nach dem Senden serverseitig abrufbar.
+- Bei **sehr kurzen** Antworten bleibt der Wert tatsächlich unverändert (dann ist Stillstand korrekt).
+- Zusätzlich zum praktischen Nutzen gibt es eine Debug-Fassung mit Konsolen-Logs unter
+  `!Ausgabe/xdeepseek-token-badge-v1.0.6-debug.user.js` (nicht auf Greasy Fork).
+
+---
+
 ## [1.0.5] — 2026-09-10
 
 ### Behoben

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.0.5
+// @version      1.0.6
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -48,8 +48,9 @@
     const DEBUG              = false;    // true → Konsolen-Logs aktivieren
     const STORE_KEY          = 'xdsTokenBadge.sessionTokens';
     const REFETCH_DELAY      = 4000;     // ms Mindestabstand zwischen zwei Nachladungen
-    const REFRESH_DELAY      = 2500;     // ms Mindestabstand für das Nachladen nach einer Antwort
-    const REFRESH_RETRY_MS   = 3000;     // ms Wartezeit für den zweiten Versuch
+    // Nach einer Antwort kann der Server den neuen Tokenstand verzögert fortschreiben.
+    // Deshalb mehrere Versuche mit wachsendem Abstand (Summe ≈ 35 s).
+    const REFRESH_STEPS      = [1500, 3000, 6000, 10000, 15000];
     const STORE_MAX          = 200;      // max. Anzahl gemerkter Chats
 
     const log = (...a) => { if (DEBUG) console.log('[TokenBadge]', ...a); };
@@ -60,6 +61,9 @@
     let currentSession = null;
     let lastRefetchAt  = 0;
     let lastRefreshAt  = 0;
+    let lastMsgCount   = null;
+    let refreshInfo    = 'noch kein Nachladen nach einer Antwort';
+    let refreshSeq     = 0;
     let contextSize    = DEFAULT_CONTEXT_SIZE;   // wird aus den Settings aktualisiert
     let contextSource  = 'Rückfallwert';
     let modelLimits    = {};      // model_type -> { plain, thinking }
@@ -130,7 +134,8 @@
                 ? 'Letzter bekannter Wert für diesen Chat (Server lieferte nur ein Delta)'
                 : 'Aktueller Wert aus der Server-Antwort',
             `Exakt: ${tokens.toLocaleString()} von ${contextSize.toLocaleString()} Token (${rawPct.toFixed(2).replace('.', ',')} %)`,
-            `Kontextgrenze aus DeepSeek-Settings: ${contextSource}`
+            `Kontextgrenze aus DeepSeek-Settings: ${contextSource}`,
+            `Nachladen nach Antwort: ${refreshInfo}`
         ].join(' · ');
     }
 
@@ -308,7 +313,8 @@
             updateContextSize();
         }
         const msgs = biz.chat_messages;
-        if (Array.isArray(msgs) && msgs.length) {
+        if (Array.isArray(msgs)) {
+            lastMsgCount = msgs.length;
             const last = msgs[msgs.length - 1];
             if (last && typeof last.thinking_enabled === 'boolean' && last.thinking_enabled !== currentThinking) {
                 currentThinking = last.thinking_enabled;
@@ -386,12 +392,15 @@
             const response = await originalFetch.call(window, target.toString(), init);
             const json = await response.json();
             const tokens = extractTokenUsage(json);
-            log('History geladen →', tokens, sessionId);
+            const msgs = (bizData(json) || {}).chat_messages;
+            const count = Array.isArray(msgs) ? msgs.length : null;
+            if (Number.isFinite(count)) lastMsgCount = count;
+            log('History geladen →', tokens, 'Nachrichten:', count, sessionId);
             if (tokens !== null) handle(tokens, sessionId);
-            return tokens;
+            return { tokens, count };
         } catch (err) {
             log('fetchHistory error', err);
-            return null;
+            return { tokens: null, count: null, error: String(err).slice(0, 120) };
         }
     }
 
@@ -406,20 +415,58 @@
 
     // Nach dem Ende einer Antwort lädt die App die History NICHT neu — der Tokenstand
     // bliebe bis F5/Chat-Wechsel stehen (der SSE-Stream liefert nur accumulated_token_usage: 0
-    // beim Anlegen der Nachricht). Deshalb holen wir die History hier selbst:
-    // kurz warten (Server persistiert die Nachricht) und bei unverändertem Wert einmal nachfassen.
+    // beim Anlegen der Nachricht). Deshalb holen wir die History hier selbst — mehrfach mit
+    // wachsendem Abstand, weil der Server den neuen Stand verzögert fortschreibt.
     function refreshAfterAnswer(sessionId, headers) {
-        const before = lastValue;
-        const attempt = (delay, mayRetry) => {
-            window.setTimeout(() => {
-                if (Date.now() - lastRefreshAt < REFRESH_DELAY) return;
+        if (!sessionId) {
+            refreshInfo = 'abgebrochen: keine Session-ID erkannt';
+            renderValue(lastValue, lastStale);
+            log('Refresh ohne Session-ID');
+            return;
+        }
+        const beforeTokens = lastValue;
+        const beforeCount = lastMsgCount;
+        const seq = ++refreshSeq;           // neuere Antworten übernehmen
+        let step = 0;
+        refreshInfo = `läuft … (vorher ${beforeTokens === null ? 'unbekannt' : beforeTokens.toLocaleString()})`;
+        renderValue(lastValue, lastStale);
+
+        const attempt = () => {
+            if (seq !== refreshSeq) return;
+            if (step >= REFRESH_STEPS.length) {
+                refreshInfo = `aufgegeben nach ${REFRESH_STEPS.length} Versuchen (Wert blieb unverändert)`;
+                renderValue(lastValue, lastStale);
+                log('Refresh aufgegeben für', sessionId);
+                return;
+            }
+            const delay = REFRESH_STEPS[step];
+            step += 1;
+            window.setTimeout(async () => {
+                if (seq !== refreshSeq) return;
                 lastRefreshAt = Date.now();
-                fetchHistory(sessionId, headers).then((tokens) => {
-                    if (mayRetry && (tokens === null || tokens === before)) attempt(REFRESH_RETRY_MS, false);
-                });
+                const r = await fetchHistory(sessionId, headers);
+                if (seq !== refreshSeq) return;
+                const tokens = r ? r.tokens : null;
+                const count = r ? r.count : null;
+
+                if (Number.isFinite(tokens) && tokens !== beforeTokens) {
+                    refreshInfo = `ok (Versuch ${step}): ${tokens.toLocaleString()} Token`;
+                    log('Refresh ok nach Versuch', step, '→', tokens);
+                    return;
+                }
+                // Keine neue Nachricht in der History → es gibt nichts nachzuladen.
+                if (Number.isFinite(count) && Number.isFinite(beforeCount) && count <= beforeCount) {
+                    refreshInfo = `fertig: keine neue Nachricht (${count}), Wert bleibt ${tokens === null ? 'unbekannt' : tokens.toLocaleString()}`;
+                    renderValue(lastValue, lastStale);
+                    log('Refresh beendet: Nachrichtenzahl unverändert', count);
+                    return;
+                }
+                refreshInfo = `Versuch ${step}: ${tokens === null ? 'kein Wert erhalten' : tokens.toLocaleString() + ' Token (unverändert)'}, Nachrichten ${count}`;
+                renderValue(lastValue, lastStale);
+                attempt();
             }, delay);
         };
-        attempt(1500, true);
+        attempt();
     }
 
     async function refetchFullHistory(url, headers) {
@@ -570,5 +617,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.0.5 geladen.');
+    log('xDeepSeek Token Badge v1.0.6 geladen.');
 })();
