@@ -83,7 +83,7 @@ GreasyFork zeigt weitere Felder an. Empfohlene Werte:
 
 Wenn du später Änderungen machst:
 
-1. Erhöhe die `@version`-Nummer im Skriptkopf (z. B. von `1.0.0` auf `1.0.1` oder `1.1.0`)
+1. Erhöhe die `@version`-Nummer im Skriptkopf (z. B. von `1.0.0` auf `1.0.2` oder `1.1.0`)
 2. Öffne die Skript-Seite auf GreasyFork
 3. Klicke oben auf **„Update this script"** (Bearbeiten-Symbol)
 4. Ersetze den Code-Block durch die neue Version
