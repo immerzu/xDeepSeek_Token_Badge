@@ -59,7 +59,7 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
 3. Warte 1–2 Sekunden
 4. Unten rechts im Fenster erscheint das Badge:
    - Zuerst `📊 --` (noch keine Daten)
-   - Nach dem ersten History-Load: `📊 406.488 / 1M  (40,65 %)` o. ä.
+   - Nach dem ersten History-Load: `📊 406K / 891K  (46 %)` o. ä. (dreistellig gerundet)
 
 ---
 

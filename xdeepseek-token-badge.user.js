@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.0.3
+// @version      1.0.4
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -29,7 +29,9 @@
  * letzten Wert je Chat, damit nach einem Reload nie "k.A." stehen bleibt.
  *
  * Kein Server, keine externen Calls, keine Tampermonkey-APIs nötig.
- * Kontextfenster-Größe wird über CONTEXT_SIZE konfiguriert.
+ * Die Kontextgrenze wird aus den DeepSeek-Settings gelesen
+ * (/api/v0/client/settings?scope=model|main, Feld file_feature.token_limit bzw.
+ * normal_history_and_file_token_limit); DEFAULT_CONTEXT_SIZE gilt nur als Rückfall.
  */
 
 (function () {
@@ -38,12 +40,14 @@
     // ---------------------------------------------------------------------
     // Konfiguration
     // ---------------------------------------------------------------------
-    const URL_FRAGMENTS = ['/chat/history_messages', '/history_messages'];
-    const CONTEXT_SIZE  = 1000000;   // DeepSeek V4: 1 Mio. Token
-    const DEBUG         = false;     // true → Konsolen-Logs aktivieren
-    const STORE_KEY     = 'xdsTokenBadge.sessionTokens';
-    const REFETCH_DELAY = 4000;      // ms Mindestabstand zwischen zwei Nachladungen
-    const STORE_MAX     = 200;       // max. Anzahl gemerkter Chats
+    const URL_FRAGMENTS      = ['/chat/history_messages', '/history_messages'];
+    const SETTINGS_FRAGMENT  = '/client/settings';
+    // Rückfallwert, falls die App keine Grenze meldet (Stand 2026-09-10: alle Modelle 890.880).
+    const DEFAULT_CONTEXT_SIZE = 890880;
+    const DEBUG              = false;    // true → Konsolen-Logs aktivieren
+    const STORE_KEY          = 'xdsTokenBadge.sessionTokens';
+    const REFETCH_DELAY      = 4000;     // ms Mindestabstand zwischen zwei Nachladungen
+    const STORE_MAX          = 200;      // max. Anzahl gemerkter Chats
 
     const log = (...a) => { if (DEBUG) console.log('[TokenBadge]', ...a); };
 
@@ -52,6 +56,12 @@
     let lastStale      = false;
     let currentSession = null;
     let lastRefetchAt  = 0;
+    let contextSize    = DEFAULT_CONTEXT_SIZE;   // wird aus den Settings aktualisiert
+    let contextSource  = 'Rückfallwert';
+    let modelLimits    = {};      // model_type -> { plain, thinking }
+    let globalLimit    = null;    // normal_history_and_file_token_limit
+    let currentModel   = null;
+    let currentThinking = null;
 
     // ---------------------------------------------------------------------
     // Badge (schwebende Anzeige unten rechts)
@@ -87,6 +97,18 @@
         return badgeEl;
     }
 
+    // Kompakte Darstellung: dreistellig gerundet (192K, 891K, 1,5M).
+    function formatTokens(n) {
+        if (!Number.isFinite(n)) return '--';
+        if (n >= 1000000) {
+            const m = n / 1000000;
+            const r = m >= 10 ? Math.round(m) : Math.round(m * 10) / 10;
+            return String(r).replace('.', ',') + 'M';
+        }
+        if (n >= 1000) return Math.round(n / 1000) + 'K';
+        return String(Math.round(n));
+    }
+
     function renderValue(tokens, stale) {
         const el = ensureBadge();
         if (!el) return;
@@ -96,12 +118,16 @@
             el.title = 'DeepSeek Kontext-Füllstand — noch keine Daten';
             return;
         }
-        const pct = (tokens / CONTEXT_SIZE * 100).toFixed(2);
-        const fmt = tokens.toLocaleString();
-        el.textContent = `📊 ${stale ? '~' : ''}${fmt} / 1M  (${pct} %)`;
-        el.title = stale
-            ? 'DeepSeek Kontext-Füllstand — letzter bekannter Wert für diesen Chat (Server lieferte nur ein Delta)'
-            : 'DeepSeek Kontext-Füllstand';
+        const rawPct = tokens / contextSize * 100;
+        const pct = rawPct > 0 && rawPct < 1 ? '<1' : String(Math.round(rawPct));
+        el.textContent = `📊 ${stale ? '~' : ''}${formatTokens(tokens)} / ${formatTokens(contextSize)}  (${pct} %)`;
+        el.title = [
+            stale
+                ? 'Letzter bekannter Wert für diesen Chat (Server lieferte nur ein Delta)'
+                : 'Aktueller Wert aus der Server-Antwort',
+            `Exakt: ${tokens.toLocaleString()} von ${contextSize.toLocaleString()} Token (${rawPct.toFixed(2).replace('.', ',')} %)`,
+            `Kontextgrenze aus DeepSeek-Settings: ${contextSource}`
+        ].join(' · ');
     }
 
     if (document.readyState === 'loading') {
@@ -190,6 +216,101 @@
             }
         } catch (err) { log('url error', err); }
         return '';
+    }
+
+    // ---------------------------------------------------------------------
+    // Kontextgrenze aus den DeepSeek-Settings
+    // ---------------------------------------------------------------------
+    // Die App liefert die Grenze selbst: model_configs[].file_feature.token_limit
+    // (bzw. token_limit_with_thinking) und normal_history_and_file_token_limit.
+    // Ohne diese Werte würde das Badge mit einem geratenen Nenner rechnen.
+    function pickSetting(value) {
+        return value && typeof value === 'object' && 'value' in value ? value.value : value;
+    }
+
+    function updateContextSize() {
+        let next = null;
+        let source = '';
+        const model = currentModel && modelLimits[currentModel] ? modelLimits[currentModel] : null;
+
+        if (model) {
+            if (currentThinking !== false && Number.isFinite(model.thinking)) {
+                next = model.thinking;
+                source = `Modell ${currentModel}${currentThinking === true ? ' mit Denken' : ''}`;
+            } else if (Number.isFinite(model.plain)) {
+                next = model.plain;
+                source = `Modell ${currentModel}`;
+            }
+        }
+        if (!Number.isFinite(next)) {
+            const all = Object.keys(modelLimits)
+                .reduce((acc, k) => acc.concat([modelLimits[k].plain, modelLimits[k].thinking]), [])
+                .filter((v) => Number.isFinite(v));
+            if (all.length) {
+                next = Math.max.apply(null, all);
+                source = 'größtes Modell-Limit';
+            }
+        }
+        if (!Number.isFinite(next) && Number.isFinite(globalLimit)) {
+            next = globalLimit;
+            source = 'History-/Datei-Limit';
+        }
+        if (!Number.isFinite(next) || next <= 0) return;
+
+        if (next === contextSize) {
+            if (source) contextSource = source;
+            return;
+        }
+        contextSize = next;
+        contextSource = source || 'DeepSeek-Settings';
+        log('Kontextgrenze →', contextSize, contextSource);
+        if (lastValue !== null) renderValue(lastValue, lastStale);
+    }
+
+    function applySettings(url, json) {
+        try {
+            const scope = new URL(url, location.origin).searchParams.get('scope');
+            const biz = bizData(json);
+            const settings = biz ? biz.settings : null;
+            if (!settings) return;
+
+            if (scope === 'model') {
+                const models = pickSetting(settings.model_configs) || [];
+                for (const m of models) {
+                    const ff = m.file_feature || {};
+                    modelLimits[m.model_type] = {
+                        plain: Number.isFinite(ff.token_limit) ? ff.token_limit : null,
+                        thinking: Number.isFinite(ff.token_limit_with_thinking) ? ff.token_limit_with_thinking : null
+                    };
+                }
+                log('Modell-Limits:', JSON.stringify(modelLimits));
+            } else if (scope === 'main') {
+                const limit = pickSetting(settings.normal_history_and_file_token_limit);
+                if (Number.isFinite(limit) && limit > 0) globalLimit = limit;
+            }
+            updateContextSize();
+        } catch (err) {
+            log('settings error', err);
+        }
+    }
+
+    // Modell/Denkmodus des aktiven Chats merken (bestimmt die passende Grenze).
+    function noteSession(json) {
+        const biz = bizData(json);
+        if (!biz) return;
+        const session = biz.chat_session;
+        if (session && session.model_type && session.model_type !== currentModel) {
+            currentModel = session.model_type;
+            updateContextSize();
+        }
+        const msgs = biz.chat_messages;
+        if (Array.isArray(msgs) && msgs.length) {
+            const last = msgs[msgs.length - 1];
+            if (last && typeof last.thinking_enabled === 'boolean' && last.thinking_enabled !== currentThinking) {
+                currentThinking = last.thinking_enabled;
+                updateContextSize();
+            }
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -304,10 +425,16 @@
             try {
                 const url = requestUrl(args[0]);
                 log('fetch →', url);
-                if (url && URL_FRAGMENTS.some(f => url.includes(f))) {
+                const isSettings = !!url && url.includes(SETTINGS_FRAGMENT);
+                if (url && (isSettings || URL_FRAGMENTS.some(f => url.includes(f)))) {
                     const fromUrl = sessionIdFromUrl(url);
                     response.clone().json()
                         .then(json => {
+                            if (isSettings) {
+                                applySettings(url, json);
+                                return;
+                            }
+                            noteSession(json);
                             const biz = bizData(json);
                             const sessionId = (biz && biz.chat_session && biz.chat_session.id) || fromUrl;
                             const tokens = extractTokenUsage(json);
@@ -357,8 +484,14 @@
             this.addEventListener('load', function () {
                 try {
                     const url = this.__tokenbadge_url || '';
-                    if (!URL_FRAGMENTS.some(f => url.includes(f))) return;
+                    const isSettings = url.includes(SETTINGS_FRAGMENT);
+                    if (!isSettings && !URL_FRAGMENTS.some(f => url.includes(f))) return;
                     const json = JSON.parse(this.responseText);
+                    if (isSettings) {
+                        applySettings(url, json);
+                        return;
+                    }
+                    noteSession(json);
                     const biz = bizData(json);
                     const sessionId = (biz && biz.chat_session && biz.chat_session.id) || sessionIdFromUrl(url);
                     const tokens = extractTokenUsage(json);
@@ -377,5 +510,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.0.3 geladen.');
+    log('xDeepSeek Token Badge v1.0.4 geladen.');
 })();

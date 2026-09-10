@@ -1,7 +1,7 @@
 {
   "name": "xDeepSeek Token Badge",
   "name_de": "xDeepSeek Token-Anzeige",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.",
   "description_de": "Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.",
   "author": "immerzu",
@@ -27,7 +27,10 @@
   ],
   "language": "de",
   "script_type": "public",
-  "context_window_size": 1000000,
+  "context_window_size_source": "model_configs[].file_feature.token_limit / token_limit_with_thinking (scope=model), sonst normal_history_and_file_token_limit (scope=main)",
+  "context_window_size_fallback": 890880,
+  "display_format": "📊 192K / 891K  (22 %) — dreistellig gerundet, exakte Werte im Tooltip",
+  "session_token_value": "Maximum der accumulated_token_usage-Werte der Chat-History",
   "hook_targets": [
     "XMLHttpRequest.prototype.send",
     "XMLHttpRequest.prototype.setRequestHeader",

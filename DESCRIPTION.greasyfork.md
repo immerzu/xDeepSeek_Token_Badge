@@ -4,7 +4,7 @@ Zeigt den aktuellen Kontext-Füllstand des DeepSeek-Chats als schwebendes Badge 
 
 ## Was macht dieses Skript?
 
-DeepSeek hat ein Kontextfenster von **bis zu 1.000.000 Token**. Sobald dieses Fenster voll ist, schneidet DeepSeek die ältesten Teile der Konversation ab. Der Chat „vergisst" dann frühere Details — ohne dass man es merkt.
+DeepSeek schneidet die ältesten Teile der Konversation ab, sobald der Kontext voll ist. Der Chat „vergisst" dann frühere Details — ohne dass man es merkt. Die Grenze liest dieses Skript direkt aus den DeepSeek-Einstellungen (derzeit **890.880 Token**), statt sie anzunehmen.
 
 **Das Problem:** DeepSeek zeigt nirgends an, wie voll der Kontext gerade ist.
 
@@ -12,7 +12,7 @@ DeepSeek hat ein Kontextfenster von **bis zu 1.000.000 Token**. Sobald dieses Fe
 
 ```
 
-📊 406.488 / 1M  (40,65 %)
+📊 406K / 891K  (46 %)
 
 ```
 
@@ -20,11 +20,12 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 
 ## Features
 
-- 🎯 **Live-Anzeige** — Token absolut + Prozent
+- 🎯 **Live-Anzeige** — dreistellig gerundete Token (`406K`, `891K`) + Prozent, exakte Werte im Tooltip
+- 📐 **Korrekte Grenze** — der Nenner kommt aus den DeepSeek-Einstellungen, nicht aus einer Annahme
 - 🚀 **Null Konfiguration** — installieren und vergessen
 - 🔒 **100 % lokal** — kein Server, keine externen Aufrufe, kein Tracking
 - 🎨 **Dezentes Design** — schwebendes dark glassy Badge, stört die Bedienung nicht
-- 🌐 **Sprachneutral** — Zahlen werden nach Systemsprache formatiert (de-DE: `406.488`, en-US: `406,488`)
+- ♻️ **Reload-fest** — merkt sich den letzten Wert je Chat (mit `~` markiert, bis der Serverwert kommt)
 
 ## Installation
 
@@ -36,11 +37,12 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 
 | Anzeige | Bedeutung |
 | --- | --- |
-| `📊 406.488 / 1M  (40,65 %)` | Aktueller Füllstand — alles in Ordnung |
-| `📊 950.000 / 1M  (95,00 %)` | Kontext fast voll — neuen Chat starten empfohlen |
+| `📊 406K / 891K  (46 %)` | Aktueller Füllstand — alles in Ordnung |
+| `📊 860K / 891K  (97 %)` | Kontext fast voll — neuen Chat starten empfohlen |
+| `📊 ~406K / 891K  (46 %)` | Letzter bekannter Wert (Server lieferte nur ein Delta) |
 | `📊 --` | Noch keine API-Antwort abgefangen — einmal `F5` drücken |
 
-Das Badge aktualisiert sich automatisch beim Chat-Wechsel und kurz nach dem Senden einer Nachricht.
+Das Badge aktualisiert sich beim Chat-Wechsel, nach dem Senden einer Nachricht und nach einem Reload.
 
 ## Kompatibilität
 
@@ -51,11 +53,13 @@ Das Badge aktualisiert sich automatisch beim Chat-Wechsel und kurz nach dem Send
 ## Bekannte Einschränkungen
 
 - Das Badge aktualisiert sich zwischen zwei History-Ladevorgängen nicht von selbst — es zeigt den zuletzt empfangenen Wert.
+- Angezeigt werden die History-/Kontext-Tokens der Unterhaltung; Datei-Tokens zählen nicht mit.
+- In verzweigten Chats (Alternativ-Antworten) kann das Maximum über alle Nachrichten höher liegen als der aktive Zweig.
 - Bei DeepSeek-Versionen mit geändertem API-Endpunkt muss das Skript angepasst werden.
 
 ## Datenschutz
 
-Das Skript sendet **keine Daten** irgendwohin. Es liest ausschließlich die API-Antworten, die dein Browser ohnehin empfängt, und verarbeitet sie lokal. Keine Persistenz, kein Tracking, keine externen Requests.
+Das Skript sendet **keine Daten** irgendwohin. Es liest ausschließlich die API-Antworten, die dein Browser ohnehin empfängt, und verarbeitet sie lokal. Kein Tracking, keine externen Requests. Der letzte Wert je Chat wird lokal im Browser (`localStorage`) gemerkt.
 
 ## Lizenz
 

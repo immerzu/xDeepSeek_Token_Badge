@@ -7,6 +7,26 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.0.4] — 2026-09-10
+
+### Geändert
+- **Kompakte Anzeige:** Tokenwerte und Kontextgrenze werden **dreistellig gerundet** dargestellt
+  (`📊 192K / 891K  (22 %)` statt `📊 191.768 / 1M  (19,18 %)`) — das Badge ist dadurch deutlich
+  schmaler. Die exakten Zahlen und der Prozentsatz stehen weiterhin im Tooltip.
+- **Kontextgrenze aus den DeepSeek-Settings** statt geraten: Das Skript liest
+  `/api/v0/client/settings?scope=model|main` und verwendet
+  `model_configs[].file_feature.token_limit` bzw. `token_limit_with_thinking` (je nach Modell und
+  Denkmodus), sonst `normal_history_and_file_token_limit`. Rückfallwert: **890.880**
+  (Stand 2026-09-10; die App meldet für alle Modelle 890.880 — die frühere Annahme „1 Mio."
+  ließ den Prozentsatz rund 11 % zu niedrig erscheinen).
+
+### Dokumentation
+- README, INSTALL, DESCRIPTION.greasyfork.md und `description.md` (DE/RU/EN) auf das neue
+  Anzeigeformat umgestellt und um die tatsächlichen Grenzen ergänzt (History-Tokens ohne
+  Datei-Tokens; bei verzweigten Chats zählt das Maximum über alle Nachrichten).
+
+---
+
 ## [1.0.3] — 2026-09-10
 
 ### Behoben
