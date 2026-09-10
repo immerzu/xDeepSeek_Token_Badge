@@ -12,6 +12,10 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
 - Der Projektordner ist das Git-Repo (origin `immerzu/xDeepSeek_Token_Badge`, Branch `main`).
 - Änderungen am Skript laufen **immer** hier → Commit → Push. GF zieht die Datei automatisch
   (Auto-Sync), solange Skript und GitHub-Inhalt identisch bleiben.
+- **Skriptversionen (Ausgaben) immer hier ablegen: `F:\001_Coding_Projekte\xDeepSeek_Token_Badge\!Ausgabe\`**
+  Namensschema: `xdeepseek-token-badge-v<version>.user.js` (z. B. `…-v1.0.3.user.js`).
+  Der Ordner ist per `.gitignore` vom Repo ausgenommen (Verteilkopien, nicht die Quelle) und ist
+  der Ort, aus dem installiert/importiert wird (Tampermonkey-Import, GF-Upload).
 
 ## Publikation
 
@@ -27,6 +31,7 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
 | Datei | Zweck |
 |---|---|
 | `xdeepseek-token-badge.user.js` | **Das Skript** — GF-Sync-Quelle, hier wird geändert |
+| `!Ausgabe/` | **Ablageort für Skriptversionen** (`xdeepseek-token-badge-v<version>.user.js`) |
 | `description.md` | GF-„Zusätzliche Informationen" (DE → RU → EN) |
 | `DESCRIPTION.greasyfork.md` | Listing-Beschreibung (Markdown) |
 | `README.md` | Projektübersicht (dreisprachig) |

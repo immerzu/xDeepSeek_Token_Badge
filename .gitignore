@@ -7,5 +7,6 @@ node_modules/
 # Temporäre Testdateien
 _tmp_*
 
-# Versionskopien (nie committen)
+# Versionskopien (nie committen) — Ablageort für Skriptversionen: !Ausgabe/
 Ausgabe/
+\!Ausgabe/

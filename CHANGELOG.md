@@ -7,6 +7,34 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.0.3] — 2026-09-10
+
+### Behoben
+- **Badge blieb nach einiger Zeit auf „📊 --" stehen** (auch beim Chat-Wechsel). Ursache: DeepSeek
+  speichert die Chat-History clientseitig (IndexedDB-Store `history-message`) und schickt an
+  `/api/v0/chat/history_messages` bei warmem Cache `cache_control: "MERGE"` mit **0 Nachrichten** —
+  der Tokenstand (`accumulated_token_usage`) fehlt dann vollständig in der Antwort.
+  Das Skript lädt die History in diesem Fall **einmalig ohne `cache_version`/`cache_reset_at`**
+  nach (gleiche Session, Header des Original-Requests) und liest den Wert aus der `REPLACE`-Antwort.
+- **Falscher Wert beim Chat-Wechsel:** Bisher blieb die Zahl des vorherigen Chats stehen. Jetzt ist
+  der Wert an die Chat-Session gebunden (Erkennung über URL und Antwort), sonst wird `--` gezeigt.
+
+### Hinzugefügt
+- Merker pro Chat (`localStorage`, max. 200 Einträge): Nach einem Reload steht sofort der letzte
+  bekannte Wert da (mit `~` gekennzeichnet), bis der Server den aktuellen Wert liefert.
+- Rekursive Suche nach `accumulated_token_usage` in der Antwort (robust gegen Feldverschiebungen).
+- XHR-Header-Mitschnitt (`setRequestHeader`) für den Nachlade-Request.
+- URL-Wächter (`pushState`/`popstate` + Intervall), damit Chat-Wechsel auch **ohne** Netzwerk-Request
+  erkannt werden.
+
+### Technische Erkenntnisse
+- Die DeepSeek-Web-App nutzt **`XMLHttpRequest`** (nicht `fetch`) — der XHR-Hook ist damit der
+  Hauptpfad; der fetch-Hook bleibt als Absicherung erhalten.
+- Bei warmem Cache liefert der Server nur Deltas; alte Nachrichten kommen aus dem IndexedDB-Cache
+  des Clients.
+
+---
+
 ## [1.0.2] — 2026-09-10
 
 ### Geändert

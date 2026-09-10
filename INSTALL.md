@@ -67,8 +67,14 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
 
 ### Badge zeigt dauerhaft `--`
 
-- **Ursache:** Der Skript-Hook greift noch nicht oder DeepSeek hat den Endpunkt geändert
-- **Lösung:** `F5` drücken und einen anderen Chat in der linken Liste anklicken. Der Chat-Wechsel lädt die History neu.
+- **Ursache:** DeepSeek speichert die Chat-History im Browser (IndexedDB). Ist dieser Cache warm,
+  liefert der Server nur noch die *Änderungen* statt der vollen History — der Tokenstand fehlt dann
+  in der Antwort.
+- **Das Skript löst das selbst:** Es lädt die History in diesem Fall automatisch ohne Cache-Parameter
+  nach und zeigt den aktuellen Wert. Kurzzeitig erscheint der letzte bekannte Wert mit `~` davor.
+- **Wenn trotzdem `--` steht:** `F5` drücken und einen anderen Chat anklicken. Bleibt es leer, mit
+  `F12` die Konsole öffnen und prüfen, ob `[TokenBadge]`-Meldungen erscheinen; im
+  Tampermonkey-Dashboard auf die neueste Version aktualisieren (ab **v1.0.3** behoben).
 
 ### Badge erscheint gar nicht
 
