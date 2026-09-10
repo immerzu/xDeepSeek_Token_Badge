@@ -70,7 +70,8 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   `deepseek-limits.mjs` (echte Kontextgrenzen), `deepseek-bundle-dump.mjs` (App-Bundles/Endpunkte),
   `deepseek-open-chat.mjs` (einzelnen Chat öffnen und Badge prüfen, Fenster bleibt offen),
   `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse: Tokenverlauf, Marker, Nachrichtenfelder),
-  `deepseek-live-send.mjs` (sendet eine Testnachricht und prüft, ob das Badge ohne Reload aktualisiert).
+  `deepseek-live-send.mjs` (sendet eine Testnachricht und prüft, ob das Badge ohne Reload aktualisiert),
+  `deepseek-value-timing.mjs` (misst, ab wann der Server den neuen Tokenstand führt).
   **Ablauf, Befehle und erwartete Checks: `memory/TESTEN-userscript-deepseek.md`**
 - Skills: `greasy-fork-publish`, `userscript-beschreibungen-immerzu`, `github-immerzu`,
   `playwright-browser`, `tampermonkey-install-update`

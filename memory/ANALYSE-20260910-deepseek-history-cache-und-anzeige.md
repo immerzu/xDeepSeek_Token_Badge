@@ -200,6 +200,42 @@ zweite Antwort:               📊 74 / 891K   →                    📊 113 /
 
 Der Merker (`localStorage`) wurde jeweils mitgeschrieben; GF live auf 1.0.5 (13:24:31).
 
+### Nachtrag v1.0.6 — Timing gemessen, Refresh gehärtet, Selbstdiagnose im Tooltip
+
+**Nutzer-Rückmeldung nach v1.0.5:** „Es aktualisiert sich immer noch nicht automatisch" (Version 1.0.5
+war nachweislich installiert).
+
+**Timing-Messung** (`deepseek-value-timing.mjs`: sendet und fragt die History danach alle 2 s im
+Seitenkontext ab, mit Bearer-Token aus `localStorage`):
+
+```
++16001ms  req  /api/v0/chat/completion
++16306ms  res  /api/v0/chat/completion      (Stream-Ende)
++18021ms  req  /api/v0/chat/history_messages?chat_session_id=…   ← unser Refresh
+ab +2s    Serverwert bereits abrufbar (74 Token), danach konstant
+```
+
+Erkenntnis: Der Serverwert ist **~2 s nach dem Senden** verfügbar. Bei **sehr kurzen** Antworten
+bleibt er unverändert (Stillstand ist dann korrekt, kein Fehler). Bei längeren Turns steigt er deutlich
+(Sequenz: jeder Turn ≈ +15.000 Token).
+
+**v1.0.6 (Commit `90806c0`):**
+
+1. Refresh mit **Backoff**: 1,5 / 3 / 6 / 10 / 15 s (≈ 35 s) statt zwei Versuchen.
+2. **Nachrichtenzahl-Prüfung**: `fetchHistory` liefert jetzt `{tokens, count}`; enthält die History
+   keine neue Nachricht, wird nicht weiter nachgeladen.
+3. **Selbstdiagnose im Tooltip**: `Nachladen nach Antwort: ok (Versuch 1): … Token` /
+   `Versuch 3: … Token (unverändert), Nachrichten 22` / `aufgegeben nach 5 Versuchen` /
+   `abgebrochen: keine Session-ID erkannt`. Damit ist ohne Konsole erkennbar, warum eine Zahl steht.
+4. **Debug-Fassung** (`!Ausgabe/xdeepseek-token-badge-v1.0.6-debug.user.js`, `DEBUG = true`) für die
+   Ferndiagnose beim Nutzer — nicht auf Greasy Fork.
+
+**Testnachweis v1.0.6** (ohne Reload): `74 → 581` (nach der Antwort), später `→ 1107`.
+
+**Interpretationshilfe (wichtig für künftige Meldungen):** Die Anzeige ist dreistellig gerundet —
+Änderungen unter ~1.000 Token sind in der Leiste **nicht** sichtbar (`184K` bleibt `184K`). Ob sich
+der Wert real bewegt hat, zeigt der **Tooltip** (exakte Tokenzahl + Prozent mit zwei Dezimalen).
+
 ## 9. Wichtige Codeanker (für künftige Änderungen)
 
 | Zweck | Wert |
@@ -256,6 +292,7 @@ Der Merker (`localStorage`) wurde jeweils mitgeschrieben; GF live auf 1.0.5 (13:
 | `4fd1dfe` | Memory: Analyse der Modell-Selbstauskunft `[ X % von 100 % gefüllt]` + `fragments`-Feld |
 | `be712bc` | Memory: Werkzeuge/Befunde der Chat-Analyse nachgetragen |
 | `d2c7b2c` | v1.0.5 — Nachladen am Ende des Antwort-Streams (Badge aktualisiert ohne F5) |
+| `90806c0` | v1.0.6 — Refresh-Backoff, Nachrichtenzahl-Prüfung, Selbstdiagnose im Tooltip, Debug-Fassung |
 
 Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
 Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:

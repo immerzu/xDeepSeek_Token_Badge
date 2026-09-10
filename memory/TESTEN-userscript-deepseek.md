@@ -24,6 +24,7 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-open-chat.mjs` | Öffnet eine **bestimmte Chat-URL** (`DS_CHAT_URL`), injiziert optional die lokale `.user.js` und liest Badge + Tooltip + `history_messages` aus. Das Fenster **bleibt offen** (zum Anschauen; `DS_KEEP_OPEN=0` schließt es, `job_kill` beendet). |
 | `deepseek-analyze-context.mjs` | Tiefenanalyse eines Chats: kompletter Seitentext (Datei), Prozent-Marker im Chatverlauf, **alle** API-Nachrichten mit Tokenstand/Rolle/`fragments`-Flags, DOM-Nachrichtenzahl, Badge-Zustand. |
 | `deepseek-live-send.mjs` | **Sendet eine echte Testnachricht** und protokolliert Request-/Response-Timeline, SSE-Frames (Suche nach `accumulated_token_usage`) und den Badge-Zustand alle 5 s → belegt, ob sich das Badge ohne Reload aktualisiert. `DS_URL` (leer = neuer Chat), `DS_MSG`, `DS_WAIT`. |
+| `deepseek-value-timing.mjs` | **Timing-Messung:** sendet eine Nachricht und fragt danach alle 2 s die History im Seitenkontext ab (Bearer-Token aus `localStorage`) → zeigt, ab wann der Server den neuen Tokenstand führt. `DS_WAIT_S` (Default 45). |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
 
