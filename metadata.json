@@ -1,7 +1,7 @@
 {
   "name": "xDeepSeek Token Badge",
   "name_de": "xDeepSeek Token-Anzeige",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.",
   "description_de": "Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.",
   "author": "immerzu",
@@ -32,10 +32,12 @@
   "display_format": "📊 192K / 891K  (22 %) — dreistellig gerundet, exakte Werte im Tooltip",
   "session_token_value": "Maximum der accumulated_token_usage-Werte der Chat-History",
   "hook_targets": [
+    "XMLHttpRequest.prototype.open",
     "XMLHttpRequest.prototype.send",
     "XMLHttpRequest.prototype.setRequestHeader",
     "window.fetch"
   ],
+  "refresh_after_answer": "Am Ende des Antwort-Streams /api/v0/chat/completion wird die History ohne Cache-Parameter nachgeladen (1,5 s danach, ggf. erneut nach 3 s), weil die App nach dem Senden keine history_messages-Abfrage ausführt und der SSE-Stream nur accumulated_token_usage:0 liefert.",
   "primary_hook": "XMLHttpRequest.prototype.send",
   "history_cache_handling": "Bei cache_control=MERGE (0 Nachrichten) wird /chat/history_messages einmalig ohne cache_version/cache_reset_at nachgeladen (REPLACE-Antwort mit vollem Tokenstand).",
   "api_endpoint_fragment": "/chat/history_messages",

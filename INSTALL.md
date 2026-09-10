@@ -92,8 +92,9 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
 
 ### Badge bleibt auf einem alten Wert stehen
 
-- Das ist erwartet: Das Badge aktualisiert sich nur, wenn DeepSeek die History lädt (Chat-Wechsel oder gesendete Nachricht)
-- Für sofortige Aktualisierung: `F5` drücken
+- Ab **v1.0.5** lädt das Skript den Wert nach jeder Antwort automatisch nach. Bleibt die Zahl trotzdem
+  stehen, einmal `F5` drücken (dann wird die History neu geladen) und das Skript in Tampermonkey auf
+  die neueste Version aktualisieren.
 
 ---
 

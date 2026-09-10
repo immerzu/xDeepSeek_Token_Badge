@@ -52,7 +52,7 @@ Das Badge aktualisiert sich beim Chat-Wechsel, nach dem Senden einer Nachricht u
 
 ## Bekannte Einschränkungen
 
-- Das Badge aktualisiert sich zwischen zwei History-Ladevorgängen nicht von selbst — es zeigt den zuletzt empfangenen Wert.
+- Das Badge lädt den Tokenstand nach **jeder Antwort** automatisch nach (sowie bei Chat-Wechsel und Reload). Zwischen zwei Antworten zeigt es den zuletzt empfangenen Wert.
 - Angezeigt werden die History-/Kontext-Tokens der Unterhaltung; Datei-Tokens zählen nicht mit.
 - In verzweigten Chats (Alternativ-Antworten) kann das Maximum über alle Nachrichten höher liegen als der aktive Zweig.
 - Bei DeepSeek-Versionen mit geändertem API-Endpunkt muss das Skript angepasst werden.

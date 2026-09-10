@@ -7,6 +7,26 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.0.5] — 2026-09-10
+
+### Behoben
+- **Das Badge aktualisierte sich nach einer Antwort nicht** — der neue Wert erschien erst nach `F5`
+  oder einem Chat-Wechsel. Ursache (live nachgemessen): Nach dem Senden lädt die App die History
+  **nicht** neu, sie baut den Zustand aus dem SSE-Stream `/api/v0/chat/completion` auf — und dieser
+  enthält `accumulated_token_usage` nur als Startwert `0` (Status `WIP`), nie den finalen Stand.
+  Das Skript hing aber ausschließlich an `history_messages`, also passierte nach einer Antwort nichts.
+  **Fix:** Am Ende des Antwort-Streams (XHR-`load` bzw. fetch-Ende) lädt das Skript die History
+  **selbst** — ohne Cache-Parameter, mit den Headern der laufenden Session — nach 1,5 s Wartezeit
+  (Server persistiert die Nachricht) und, falls der Wert unverändert bleibt, einmal nach 3 s erneut.
+- Zusätzlich Doku präzisiert: Die Angabe „aktualisiert sich nach dem Senden einer Nachricht" ist
+  jetzt tatsächlich erfüllt; die Einschränkung „zwischen zwei History-Ladevorgängen" entfällt.
+
+### Verifiziert (echter Chat, ohne Reload)
+- Neuer Chat: vor dem Senden `📊 --`, nach der Antwort `📊 74 / 891K  (<1 %)`
+- Zweite Antwort im selben Chat: `📊 113 / 891K  (<1 %)` — jeweils innerhalb von ~5 s
+
+---
+
 ## [1.0.4] — 2026-09-10
 
 ### Geändert

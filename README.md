@@ -69,7 +69,7 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 ## Technische Details
 
 - **Hook-Punkte:** `XMLHttpRequest.prototype.send` (+ `setRequestHeader`) und `window.fetch`
-- **Ziel-Endpunkt:** `*/chat/history_messages` (Tokenstand), `*/client/settings` (Kontextgrenze)
+- **Ziel-Endpunkte:** `*/chat/history_messages` (Tokenstand), `*/client/settings` (Kontextgrenze), `*/chat/completion` (Ende des Antwort-Streams → Nachladen auslösen)
 - **Ausgelesenes Feld:** `data.biz_data.chat_messages[].accumulated_token_usage`
 - **Angezeigter Wert:** Maximum der `accumulated_token_usage`-Werte; bei `cache_control: MERGE` wird die History einmalig ohne Cache-Parameter nachgeladen
 - **Kontextgrenze:** aus `model_configs[].file_feature.token_limit` bzw. `normal_history_and_file_token_limit` (Rückfall: 890.880)
@@ -93,7 +93,7 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 
 ## Bekannte Einschränkungen
 
-- Das Badge aktualisiert sich nur, wenn DeepSeek die History lädt — also beim Öffnen/Wechseln eines Chats, nach einem Reload oder einmaligem Nachladen. Zwischen diesen Ereignissen bleibt der letzte Wert stehen.
+- Das Badge lädt den Tokenstand nach **jeder Antwort** automatisch nach sowie beim Öffnen/Wechseln eines Chats und nach einem Reload. Zwischen zwei Antworten bleibt der zuletzt empfangene Wert stehen.
 - Angezeigt werden die History-/Kontext-Tokens der Unterhaltung; Datei-Tokens zählen nicht mit.
 - In verzweigten Chats (Alternativ-Antworten) kann das Maximum über alle Nachrichten höher liegen als der aktive Zweig.
 - Bei DeepSeek-Versionen, die den Endpunkt `/history_messages` umbenennen, muss `URL_FRAGMENTS` im Skript angepasst werden.

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.0.4
+// @version      1.0.5
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -42,11 +42,14 @@
     // ---------------------------------------------------------------------
     const URL_FRAGMENTS      = ['/chat/history_messages', '/history_messages'];
     const SETTINGS_FRAGMENT  = '/client/settings';
+    const COMPLETION_FRAGMENT = '/chat/completion';   // SSE-Antwortstrom
     // Rückfallwert, falls die App keine Grenze meldet (Stand 2026-09-10: alle Modelle 890.880).
     const DEFAULT_CONTEXT_SIZE = 890880;
     const DEBUG              = false;    // true → Konsolen-Logs aktivieren
     const STORE_KEY          = 'xdsTokenBadge.sessionTokens';
     const REFETCH_DELAY      = 4000;     // ms Mindestabstand zwischen zwei Nachladungen
+    const REFRESH_DELAY      = 2500;     // ms Mindestabstand für das Nachladen nach einer Antwort
+    const REFRESH_RETRY_MS   = 3000;     // ms Wartezeit für den zweiten Versuch
     const STORE_MAX          = 200;      // max. Anzahl gemerkter Chats
 
     const log = (...a) => { if (DEBUG) console.log('[TokenBadge]', ...a); };
@@ -56,6 +59,7 @@
     let lastStale      = false;
     let currentSession = null;
     let lastRefetchAt  = 0;
+    let lastRefreshAt  = 0;
     let contextSize    = DEFAULT_CONTEXT_SIZE;   // wird aus den Settings aktualisiert
     let contextSource  = 'Rückfallwert';
     let modelLimits    = {};      // model_type -> { plain, thinking }
@@ -371,6 +375,53 @@
     // Kernfix: volle History nachladen, wenn der Server nur ein Delta schickt
     // ---------------------------------------------------------------------
     // headers: die Header des Original-Requests, damit die Session erhalten bleibt.
+    // Lädt die volle History einer Session (ohne Cache-Parameter) und wertet den Tokenstand aus.
+    async function fetchHistory(sessionId, headers) {
+        if (!sessionId) return null;
+        try {
+            const target = new URL('/api/v0/chat/history_messages', location.origin);
+            target.searchParams.set('chat_session_id', sessionId);
+            const init = { method: 'GET', credentials: 'include' };
+            if (headers && Object.keys(headers).length) init.headers = headers;
+            const response = await originalFetch.call(window, target.toString(), init);
+            const json = await response.json();
+            const tokens = extractTokenUsage(json);
+            log('History geladen →', tokens, sessionId);
+            if (tokens !== null) handle(tokens, sessionId);
+            return tokens;
+        } catch (err) {
+            log('fetchHistory error', err);
+            return null;
+        }
+    }
+
+    // Session-ID aus dem Body eines POST (chat/completion).
+    function sessionIdFromBody(body) {
+        try {
+            if (typeof body !== 'string' || !body) return null;
+            const m = body.match(/"chat_session_id"\s*:\s*"([0-9a-fA-F-]{8,})"/);
+            return m ? m[1] : null;
+        } catch (err) { log('body session error', err); return null; }
+    }
+
+    // Nach dem Ende einer Antwort lädt die App die History NICHT neu — der Tokenstand
+    // bliebe bis F5/Chat-Wechsel stehen (der SSE-Stream liefert nur accumulated_token_usage: 0
+    // beim Anlegen der Nachricht). Deshalb holen wir die History hier selbst:
+    // kurz warten (Server persistiert die Nachricht) und bei unverändertem Wert einmal nachfassen.
+    function refreshAfterAnswer(sessionId, headers) {
+        const before = lastValue;
+        const attempt = (delay, mayRetry) => {
+            window.setTimeout(() => {
+                if (Date.now() - lastRefreshAt < REFRESH_DELAY) return;
+                lastRefreshAt = Date.now();
+                fetchHistory(sessionId, headers).then((tokens) => {
+                    if (mayRetry && (tokens === null || tokens === before)) attempt(REFRESH_RETRY_MS, false);
+                });
+            }, delay);
+        };
+        attempt(1500, true);
+    }
+
     async function refetchFullHistory(url, headers) {
         let target;
         try { target = new URL(url, location.origin); }
@@ -382,20 +433,8 @@
         lastRefetchAt = Date.now();
 
         const sessionId = target.searchParams.get('chat_session_id');
-        target.searchParams.delete('cache_version');
-        target.searchParams.delete('cache_reset_at');
-
-        try {
-            const init = { method: 'GET', credentials: 'include' };
-            if (headers && Object.keys(headers).length) init.headers = headers;
-            const response = await originalFetch.call(window, target.toString(), init);
-            const json = await response.json();
-            const tokens = extractTokenUsage(json);
-            log('Nachladen ohne Cache →', tokens);
-            if (tokens !== null) handle(tokens, sessionId || (bizData(json) || {}).chat_session?.id || currentSession);
-        } catch (err) {
-            log('refetch error', err);
-        }
+        log('MERGE-Antwort ohne Tokenstand → History nachladen', sessionId);
+        await fetchHistory(sessionId, headers);
     }
 
     // Header eines fetch()-Aufrufs als einfaches Objekt (für den Re-Request).
@@ -449,6 +488,12 @@
                         })
                         .catch(err => log('json parse error', err));
                 }
+                // Antwort-Stream per fetch (Sicherheitsnetz): am Ende Tokenstand nachladen.
+                if (url && url.includes(COMPLETION_FRAGMENT)) {
+                    response.clone().text()
+                        .then(() => refreshAfterAnswer(sessionFromLocation() || currentSession, headersFromFetchArgs(args)))
+                        .catch(err => log('completion fetch error', err));
+                }
             } catch (err) {
                 log('hook error', err);
             }
@@ -481,6 +526,21 @@
         };
 
         XHR.prototype.send = function (...args) {
+            const reqUrl = this.__tokenbadge_url || '';
+
+            // Antwort-Stream (SSE): am Ende den Tokenstand selbst nachladen.
+            if (reqUrl.includes(COMPLETION_FRAGMENT)) {
+                const self = this;
+                const body = args && args[0];
+                this.addEventListener('load', function () {
+                    try {
+                        const sid = sessionIdFromBody(body) || sessionFromLocation() || currentSession;
+                        log('Antwort-Stream beendet → History nachladen', sid);
+                        refreshAfterAnswer(sid, self.__tokenbadge_headers);
+                    } catch (err) { log('completion hook error', err); }
+                });
+            }
+
             this.addEventListener('load', function () {
                 try {
                     const url = this.__tokenbadge_url || '';
@@ -510,5 +570,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.0.4 geladen.');
+    log('xDeepSeek Token Badge v1.0.5 geladen.');
 })();

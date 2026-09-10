@@ -32,7 +32,7 @@ Das Badge aktualisiert sich beim Chat-Wechsel, nach dem Senden einer Nachricht u
 
 **Bekannte Einschränkungen**
 
-- Zwischen zwei History-Ladevorgängen zeigt das Badge den zuletzt empfangenen Wert.
+- Zwischen zwei Antworten zeigt das Badge den zuletzt empfangenen Wert; nach jeder Antwort wird er automatisch nachgeladen (ohne Reload).
 - Angezeigt werden die History-/Kontext-Tokens der Unterhaltung; Datei-Tokens zählen nicht mit.
 - In verzweigten Chats (Alternativ-Antworten) kann das Maximum über alle Nachrichten höher liegen als der aktive Zweig.
 - Bei DeepSeek-Versionen mit geändertem API-Endpunkt muss das Skript angepasst werden.
@@ -75,7 +75,7 @@ DeepSeek отбрасывает самые старые части перепи�
 
 **Известные ограничения**
 
-- Между загрузками истории значок показывает последнее полученное значение.
+- Между двумя ответами значок показывает последнее полученное значение; после каждого ответа оно обновляется автоматически (без перезагрузки).
 - Показываются токены истории/контекста переписки; токены файлов не учитываются.
 - В ветвящихся чатах (альтернативные ответы) максимум по всем сообщениям может быть выше активной ветви.
 - В версиях DeepSeek с изменённой конечной точкой API скрипт требует правки.
@@ -118,7 +118,7 @@ The badge updates when you switch chats, after sending a message and after a rel
 
 **Known limitations**
 
-- Between two history loads the badge keeps showing the last value it received.
+- Between two answers the badge keeps showing the last value it received; after every answer it is refreshed automatically (no reload needed).
 - It shows the history/context tokens of the conversation; file tokens are not included.
 - In branched chats (alternative answers) the maximum across all messages can be higher than the active branch.
 - On DeepSeek versions with a changed API endpoint the script needs adjusting.
