@@ -1,0 +1,11 @@
+# Browser-Automation (Playwright-Profil, Testartefakte)
+.playwright-mcp/
+
+# Node
+node_modules/
+
+# Temporäre Testdateien
+_tmp_*
+
+# Versionskopien (nie committen)
+Ausgabe/

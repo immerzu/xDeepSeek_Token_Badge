@@ -1,0 +1,69 @@
+{
+  "name": "xDeepSeek Token Badge",
+  "name_de": "xDeepSeek Token-Anzeige",
+  "version": "1.0.0",
+  "description": "Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.",
+  "description_de": "Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.",
+  "author": "immerzu",
+  "author_url": "https://greasyfork.org/de/users/1629833-immerzu",
+  "namespace": "https://greasyfork.org/de/users/1629833-immerzu",
+  "license": "MIT",
+  "match": [
+    "https://chat.deepseek.com/*"
+  ],
+  "grant": "none",
+  "run_at": "document-start",
+  "no_frames": true,
+  "icon": "https://www.google.com/s2/favicons?sz=64&domain=deepseek.com",
+  "tags": [
+    "deepseek",
+    "token",
+    "context",
+    "badge",
+    "chat",
+    "kontext",
+    "tokenzaehler",
+    "token-counter"
+  ],
+  "language": "de",
+  "script_type": "public",
+  "context_window_size": 1000000,
+  "hook_targets": [
+    "window.fetch",
+    "XMLHttpRequest.prototype.send"
+  ],
+  "api_endpoint_fragment": "/chat/history_messages",
+  "extracted_field": "data.biz_data.chat_messages[].accumulated_token_usage",
+  "repository_note": "Zur Veröffentlichung vorbereitet am 2026-09-10",
+  "greasyfork_publish_url": "https://greasyfork.org/de/script_versions/new",
+  "files": [
+    {
+      "path": "xdeepseek-token-badge.user.js",
+      "purpose": "Das veröffentlichungsfertige Userscript"
+    },
+    {
+      "path": "README.md",
+      "purpose": "Projektübersicht und technische Dokumentation"
+    },
+    {
+      "path": "PUBLISHING.md",
+      "purpose": "Schritt-für-Schritt-Anleitung zur GreasyFork-Veröffentlichung"
+    },
+    {
+      "path": "DESCRIPTION.greasyfork.md",
+      "purpose": "Fertige Listing-Beschreibung für GreasyFork"
+    },
+    {
+      "path": "INSTALL.md",
+      "purpose": "Endnutzer-Installationsanleitung"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "purpose": "Versionshistorie und Entwicklungsnotizen"
+    },
+    {
+      "path": "LICENSE",
+      "purpose": "MIT-Lizenztext"
+    }
+  ]
+}
