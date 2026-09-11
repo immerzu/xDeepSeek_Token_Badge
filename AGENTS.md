@@ -96,6 +96,12 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   (`cache_version`/`cache_reset_at` gesetzt) `cache_control: MERGE` mit **0 Nachrichten**, sodass der
   Tokenstand in der Antwort fehlt. Hook- und Nachladelogik daher immer im **XHR-Pfad** prüfen.
   Belege, Messwerte und Codeanker: `memory/ANALYSE-20260910-deepseek-history-cache-und-anzeige.md`.
+- **Browserstart ohne „Seiten wiederherstellen?"-Blase:** Playwright beendet Chromium hart → das Profil
+  `reasonix-profil` steht auf `Preferences.profile.exit_type = "Crashed"` und Chromium zeigt beim
+  nächsten Start die Wiederherstellen-Meldung. Gelöst in `browser-tools/lib.mjs`: `BASE_ARGS`
+  (`--hide-crash-restore-bubble`, `--no-first-run`, `--no-default-browser-check`) plus
+  `resetProfileCrashFlag()` vor jedem Start (von `launchBrowser()` und allen `deepseek-*.mjs`
+  aufgerufen). Neue Launcher müssen `args: BASE_ARGS` setzen.
 - **Kontextgrenze nicht raten:** Sie kommt aus `/api/v0/client/settings?scope=model|main`
   (`model_configs[].file_feature.token_limit(_with_thinking)`, derzeit **890.880**; nicht 1 Mio.).
 - **Badge-Bedienung (seit v1.0.7):** Das Badge hat `pointer-events: auto` (vorher `none`) und ist per

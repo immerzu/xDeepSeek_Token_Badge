@@ -11,6 +11,11 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 - Im Profil muss ein **DeepSeek-Login** bestehen. Läuft die Session ab, landet die App auf
   `/sign_in` (`localStorage.userToken.value === null`) → **nur der Nutzer** kann sich neu anmelden.
 - Kein zweiter Playwright-Lauf gleichzeitig (Profil-Lock: „Profile in use").
+- **Kein „Seiten wiederherstellen?" beim Start:** Die Tools setzen `BASE_ARGS`
+  (`--hide-crash-restore-bubble`, `--no-first-run`, `--no-default-browser-check`) und rufen
+  `resetProfileCrashFlag()` (setzt `Preferences.profile.exit_type` auf `Normal`) — Playwright beendet
+  Chromium hart, sonst zeigt das Profil bei jedem Start die Wiederherstellen-Blase. Neue Launcher
+  müssen `args: BASE_ARGS` verwenden.
 
 ## Werkzeuge
 
