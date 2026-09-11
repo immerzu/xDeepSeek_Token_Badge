@@ -16,7 +16,7 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 - Korrekte Grenze — der Nenner kommt aus den DeepSeek-Einstellungen, nicht aus einer Annahme
 - Null Konfiguration — installieren und vergessen
 - 100 % lokal — kein Server, keine externen Aufrufe, kein Tracking
-- Dezentes Design — schwebendes Badge, stört die Bedienung nicht (`pointer-events: none`)
+- Verschiebbar — das Badge lässt sich mit der Maus an jede Stelle ziehen; die Position bleibt erhalten, Doppelklick setzt es zurück
 - Reload-fest — merkt sich den letzten Wert je Chat (mit `~` markiert, bis der Serverwert kommt)
 
 **Bedienung**
@@ -28,7 +28,7 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 | `📊 ~406K / 891K  (46 %)` | Letzter bekannter Wert (Server lieferte nur ein Delta) |
 | `📊 --` | Noch keine API-Antwort abgefangen — einmal `F5` drücken |
 
-Das Badge aktualisiert sich beim Chat-Wechsel, nach dem Senden einer Nachricht und nach einem Reload.
+Das Badge aktualisiert sich beim Chat-Wechsel, nach dem Senden einer Nachricht und nach einem Reload. Es lässt sich mit der Maus verschieben (Position bleibt erhalten, Doppelklick setzt es zurück).
 
 **Bekannte Einschränkungen**
 
@@ -59,7 +59,7 @@ DeepSeek отбрасывает самые старые части перепи�
 - Верная граница — знаменатель берётся из настроек DeepSeek, а не из предположения
 - Без настройки — установить и забыть
 - 100 % локально — без сервера, без внешних запросов, без отслеживания
-- Ненавязчивый дизайн — плавающий значок не мешает работе (`pointer-events: none`)
+- Перетаскивание — значок можно перетащить мышью в любое место; положение сохраняется, двойной щелчок возвращает его назад
 - Устойчивость к перезагрузке — последнее значение по каждому чату запоминается (помечается `~`, пока не придёт значение с сервера)
 
 **Управление**
@@ -102,7 +102,7 @@ That way you can see at a glance when it is time to start a new chat.
 - Correct limit — the denominator comes from DeepSeek's settings, not from an assumption
 - Zero configuration — install and forget
 - 100 % local — no server, no external calls, no tracking
-- Unobtrusive design — floating badge that does not interfere (`pointer-events: none`)
+- Draggable — the badge can be dragged anywhere with the mouse; the position is remembered, a double-click moves it back
 - Reload-proof — remembers the last value per chat (marked `~` until the server value arrives)
 
 **Usage**

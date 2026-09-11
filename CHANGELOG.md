@@ -7,6 +7,25 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.0.7] — 2026-09-10
+
+### Hinzugefügt
+- **Das Badge ist jetzt mit der Maus verschiebbar:** Ziehen mit der linken Maustaste (über
+  Pointer-Events auch Touch/Pen). Die Position wird in `localStorage`
+  (`xdsTokenBadge.position`) gemerkt und übersteht Reload und Chat-Wechsel; bei einer
+  Fenstergrößenänderung wird sie im sichtbaren Bereich gehalten. **Doppelklick** setzt das Badge
+  zurück in die Standardecke unten rechts.
+- Dafür wurde `pointer-events: none` durch `auto` ersetzt — nur die kleine Badge-Fläche fängt
+  Klicks ab. Eine Bewegung unter 4 px gilt als Klick und verschiebt nichts.
+
+### Verifiziert (automatischer Drag-Test im echten Browser)
+- Ziehen: Position 474,631 → 214,311 (`left`/`top` gesetzt, `right`/`bottom` auf `auto`)
+- Position in `localStorage` gespeichert und **nach Reload identisch**
+- Doppelklick: zurück auf `right`/`bottom = 16px`
+- Alle 5 Prüfungen grün (`moved`, `stored`, `keptAfterReload`, `resetToCorner`, `pointerEventsAuto`)
+
+---
+
 ## [1.0.6] — 2026-09-10
 
 ### Geändert

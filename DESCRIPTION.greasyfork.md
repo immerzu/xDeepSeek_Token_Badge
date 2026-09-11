@@ -25,6 +25,7 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 - 🚀 **Null Konfiguration** — installieren und vergessen
 - 🔒 **100 % lokal** — kein Server, keine externen Aufrufe, kein Tracking
 - 🎨 **Dezentes Design** — schwebendes dark glassy Badge, stört die Bedienung nicht
+- 🖱️ **Verschiebbar** — mit der Maus an jede Stelle ziehen; Position bleibt erhalten, Doppelklick setzt zurück
 - ♻️ **Reload-fest** — merkt sich den letzten Wert je Chat (mit `~` markiert, bis der Serverwert kommt)
 
 ## Installation

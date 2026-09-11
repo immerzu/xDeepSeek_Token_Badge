@@ -1,7 +1,7 @@
 {
   "name": "xDeepSeek Token Badge",
   "name_de": "xDeepSeek Token-Anzeige",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.",
   "description_de": "Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.",
   "author": "immerzu",
@@ -43,6 +43,7 @@
   "api_endpoint_fragment": "/chat/history_messages",
   "extracted_field": "data.biz_data.chat_messages[].accumulated_token_usage",
   "session_store": "localStorage xdsTokenBadge.sessionTokens (letzter Wert je Chat)",
+  "position_store": "localStorage xdsTokenBadge.position ({x,y} in Viewport-Pixeln) — Badge per Ziehen verschiebbar, Doppelklick setzt zurück",
   "repository_note": "Zur Veröffentlichung vorbereitet am 2026-09-10",
   "greasyfork_publish_url": "https://greasyfork.org/de/script_versions/new",
   "files": [

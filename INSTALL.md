@@ -83,12 +83,13 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
 3. Falls nicht: Skript ist nicht installiert → Schritt 2 wiederholen
 4. Falls ja, aber grün ist aus: Schalter aktivieren, dann `F5` im Chat
 
-### Badge ist zu aufdringlich / im Weg
+### Badge ist im Weg / soll woanders stehen
 
-- Öffne die Browser-Konsole (`F12`)
-- Führe aus: `document.getElementById('deepseek-token-badge').remove()`
-- Nach `F5` kommt es automatisch zurück
-- Alternativ: Skript im Tampermonkey-Dashboard deaktivieren
+- **Ziehen** mit der linken Maustaste verschiebt das Badge an jede Stelle; die Position bleibt
+  (auch nach `F5`) gespeichert.
+- **Doppelklick** auf das Badge setzt es zurück in die Standardecke unten rechts.
+- Komplett ausblenden: in der Konsole (`F12`) `document.getElementById('deepseek-token-badge').remove()` —
+  nach `F5` kommt es zurück; dauerhaft nur durch Deaktivieren des Skripts im Tampermonkey-Dashboard.
 
 ### Badge bleibt auf einem alten Wert stehen
 

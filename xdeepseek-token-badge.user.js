@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.0.6
+// @version      1.0.7
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -47,6 +47,7 @@
     const DEFAULT_CONTEXT_SIZE = 890880;
     const DEBUG              = false;    // true → Konsolen-Logs aktivieren
     const STORE_KEY          = 'xdsTokenBadge.sessionTokens';
+    const POS_KEY            = 'xdsTokenBadge.position';
     const REFETCH_DELAY      = 4000;     // ms Mindestabstand zwischen zwei Nachladungen
     // Nach einer Antwort kann der Server den neuen Tokenstand verzögert fortschreiben.
     // Deshalb mehrere Versuche mit wachsendem Abstand (Summe ≈ 35 s).
@@ -56,6 +57,8 @@
     const log = (...a) => { if (DEBUG) console.log('[TokenBadge]', ...a); };
 
     let badgeEl        = null;
+    let posX           = null;    // gespeicherte Badge-Position (Viewport-Pixel)
+    let posY           = null;
     let lastValue      = null;
     let lastStale      = false;
     let currentSession = null;
@@ -91,7 +94,9 @@
             'font:500 12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
             'letter-spacing:0.02em',
             'z-index:2147483647',
-            'pointer-events:none',
+            'pointer-events:auto',
+            'cursor:grab',
+            'touch-action:none',
             'user-select:none',
             'box-shadow:0 2px 10px rgba(0,0,0,0.25)',
             'backdrop-filter:blur(6px)',
@@ -101,9 +106,117 @@
         badgeEl.textContent = '📊 --';
         badgeEl.title = 'DeepSeek Kontext-Füllstand';
         document.body.appendChild(badgeEl);
+        restorePosition();
+        enableDrag(badgeEl);
         if (lastValue !== null) renderValue(lastValue, lastStale);
         return badgeEl;
     }
+
+    // ---------------------------------------------------------------------
+    // Position: mit der Maus verschiebbar, wird gemerkt
+    // ---------------------------------------------------------------------
+    // Ziehen = verschieben · Doppelklick = zurück in die Standardecke.
+    // Die Position liegt als Viewport-Pixel in localStorage und wird bei
+    // Fenstergrößenänderungen wieder in den sichtbaren Bereich geholt.
+    function clamp(v, min, max) {
+        return Math.min(Math.max(v, min), Math.max(min, max));
+    }
+
+    function setPosition(x, y) {
+        const el = badgeEl;
+        if (!el) return;
+        const maxX = window.innerWidth - el.offsetWidth - 4;
+        const maxY = window.innerHeight - el.offsetHeight - 4;
+        posX = clamp(x, 4, maxX);
+        posY = clamp(y, 4, maxY);
+        el.style.left = posX + 'px';
+        el.style.top = posY + 'px';
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+    }
+
+    function savePosition() {
+        try { localStorage.setItem(POS_KEY, JSON.stringify({ x: posX, y: posY })); }
+        catch (err) { log('pos save error', err); }
+    }
+
+    function restorePosition() {
+        try {
+            const raw = localStorage.getItem(POS_KEY);
+            if (!raw) return;
+            const p = JSON.parse(raw);
+            if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) setPosition(p.x, p.y);
+        } catch (err) { log('pos read error', err); }
+    }
+
+    function resetPosition() {
+        try { localStorage.removeItem(POS_KEY); } catch (err) { log('pos reset error', err); }
+        posX = null;
+        posY = null;
+        if (badgeEl) {
+            badgeEl.style.left = 'auto';
+            badgeEl.style.top = 'auto';
+            badgeEl.style.right = '16px';
+            badgeEl.style.bottom = '16px';
+        }
+    }
+
+    function enableDrag(el) {
+        let dragging = false;
+        let moved = false;
+        let startX = 0;
+        let startY = 0;
+        let origX = 0;
+        let origY = 0;
+
+        el.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0) return;                 // nur linke Maustaste
+            const r = el.getBoundingClientRect();
+            dragging = true;
+            moved = false;
+            startX = e.clientX;
+            startY = e.clientY;
+            origX = r.left;
+            origY = r.top;
+            el.style.cursor = 'grabbing';
+            try { el.setPointerCapture(e.pointerId); } catch (err) { log('capture error', err); }
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        el.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;   // Klick nicht als Drag werten
+            moved = true;
+            setPosition(origX + dx, origY + dy);
+        });
+
+        const finish = (e) => {
+            if (!dragging) return;
+            dragging = false;
+            el.style.cursor = 'grab';
+            try { el.releasePointerCapture(e.pointerId); } catch (err) { log('release error', err); }
+            if (moved) {
+                savePosition();
+                log('Position gemerkt', posX, posY);
+            }
+        };
+
+        el.addEventListener('pointerup', finish);
+        el.addEventListener('pointercancel', finish);
+        el.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resetPosition();
+            log('Position zurückgesetzt');
+        });
+    }
+
+    window.addEventListener('resize', () => {
+        if (posX !== null) setPosition(posX, posY);
+    });
 
     // Kompakte Darstellung: dreistellig gerundet (192K, 891K, 1,5M).
     function formatTokens(n) {
@@ -617,5 +730,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.0.6 geladen.');
+    log('xDeepSeek Token Badge v1.0.7 geladen.');
 })();

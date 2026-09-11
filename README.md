@@ -31,7 +31,7 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 - 📐 **Korrekte Grenze** — der Nenner kommt aus den DeepSeek-Einstellungen, nicht aus einer Annahme
 - 🚀 **Null Konfiguration** — installieren, fertig
 - 🔒 **Lokal & sicher** — kein Server, keine externen Aufrufe, kein Tracking
-- 💡 **Minimal-invasiv** — das Badge hat `pointer-events: none` und stört die Bedienung nicht
+- 🖱️ **Verschiebbar** — mit der Maus an jede Stelle ziehen; Position bleibt erhalten, Doppelklick setzt das Badge zurück
 - 🎨 **Dezentes Design** — dark glassy badge, passend zum DeepSeek-Look
 - ♻️ **Reload-fest** — merkt sich den letzten Wert je Chat (mit `~` markiert)
 
@@ -59,7 +59,9 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 
 | Aktion | Verhalten |
 | --- | --- |
-| Badge ist sichtbar | Wert wird automatisch beim Chat-Wechsel und nach dem Senden aktualisiert |
+| Badge ist sichtbar | Wert wird automatisch beim Chat-Wechsel und nach jeder Antwort aktualisiert |
+| **Ziehen** mit der Maus | Badge verschieben — die Position wird gemerkt (auch nach Reload) |
+| **Doppelklick** auf das Badge | zurück in die Standardecke unten rechts |
 | Badge zeigt `~406K / 891K  (46 %)` | Letzter bekannter Wert für diesen Chat — der Server lieferte nur ein Delta; der aktuelle Wert wird nachgeladen |
 | Badge zeigt `--` | Noch keine API-Antwort abgefangen — einmal `F5` drücken |
 | Badge fehlt komplett | Prüfen, ob Tampermonkey aktiv ist und das Skript in der Liste steht |
