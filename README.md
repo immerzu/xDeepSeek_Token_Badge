@@ -73,8 +73,8 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 ## Technische Details
 
 - **Hook-Punkte:** `XMLHttpRequest.prototype.send` (+ `setRequestHeader`) und `window.fetch`
-- **Ziel-Endpunkte:** `*/chat/history_messages` (Tokenstand), `*/client/settings` (Kontextgrenze), `*/chat/completion` (Ende des Antwort-Streams → Nachladen auslösen)
-- **Ausgelesenes Feld:** `data.biz_data.chat_messages[].accumulated_token_usage`
+- **Ziel-Endpunkte:** `*/chat/history_messages` (Tokenstand), `*/client/settings` (Kontextgrenze), `*/chat/completion` (Ende des Antwort-Streams → Nachladen auslösen), `*/share/content` (geteilte Unterhaltung)
+- **Ausgelesenes Feld:** `data.biz_data.chat_messages[].accumulated_token_usage` (in der Share-Ansicht `data.biz_data.messages[].accumulated_token_usage`)
 - **Angezeigter Wert:** Maximum der `accumulated_token_usage`-Werte; bei `cache_control: MERGE` wird die History einmalig ohne Cache-Parameter nachgeladen
 - **Kontextgrenze:** aus `model_configs[].file_feature.token_limit` bzw. `normal_history_and_file_token_limit` (Rückfall: 890.880)
 - **Verwendete Tampermonkey-APIs:** keine (`@grant none`)

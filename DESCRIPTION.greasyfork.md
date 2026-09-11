@@ -27,6 +27,7 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 - 🎨 **Dezentes Design** — schwebendes dark glassy Badge, stört die Bedienung nicht
 - 🖱️ **Verschiebbar** — mit der Maus an jede Stelle ziehen; Position bleibt erhalten, Doppelklick setzt zurück
 - ♻️ **Reload-fest** — merkt sich den letzten Wert je Chat (mit `~` markiert, bis der Serverwert kommt)
+- 🔗 **Auch in geteilten Chats** — auf `chat.deepseek.com/share/…` wird der Füllstand des geteilten Verlaufs angezeigt (Stand zum Zeitpunkt des Teilens)
 
 ## Installation
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.0.9
+// @version      1.1.0
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -43,6 +43,7 @@
     const URL_FRAGMENTS      = ['/chat/history_messages', '/history_messages'];
     const SETTINGS_FRAGMENT  = '/client/settings';
     const COMPLETION_FRAGMENT = '/chat/completion';   // SSE-Antwortstrom
+    const SHARE_FRAGMENT     = '/share/content';      // geteilte Unterhaltung
     // Rückfallwert, falls die App keine Grenze meldet (Stand 2026-09-10: alle Modelle 890.880).
     const DEFAULT_CONTEXT_SIZE = 890880;
     const DEBUG              = false;    // true → Konsolen-Logs aktivieren
@@ -355,12 +356,14 @@
         const pct = rawPct > 0 && rawPct < 1 ? '<1' : String(Math.round(rawPct));
         el.textContent = `📊 ${stale ? '~' : ''}${formatTokens(tokens)} / ${formatTokens(contextSize)}  (${pct} %)`;
         setTip([
-            stale
-                ? 'Letzter bekannter Wert für diesen Chat (Server lieferte nur ein Delta)'
-                : 'Aktueller Wert aus der Server-Antwort',
+            isShareView()
+                ? 'Geteilte Unterhaltung — Stand zum Zeitpunkt des Teilens'
+                : (stale
+                    ? 'Letzter bekannter Wert für diesen Chat (Server lieferte nur ein Delta)'
+                    : 'Aktueller Wert aus der Server-Antwort'),
             `Exakt: ${tokens.toLocaleString()} von ${contextSize.toLocaleString()} Token (${rawPct.toFixed(2).replace('.', ',')} %)`,
             `Kontextgrenze: ${contextSize.toLocaleString()} Token (${contextSource})`,
-            `Nachladen: ${refreshInfo}`,
+            ...(isShareView() ? [] : [`Nachladen: ${refreshInfo}`]),
             'Klick fixiert · Doppelklick setzt Position zurück'
         ]);
     }
@@ -583,8 +586,16 @@
     // Die App wechselt den Chat teils komplett aus dem Speicher (kein Netzwerk).
     // Ohne diesen Wächter bliebe der Wert des vorherigen Chats stehen.
     function sessionFromLocation() {
-        const m = location.pathname.match(/\/a\/chat\/s\/([0-9a-fA-F-]{8,})/);
-        return m ? m[1] : null;
+        const chat = location.pathname.match(/\/a\/chat\/s\/([0-9a-fA-F-]{8,})/);
+        if (chat) return chat[1];
+        // Geteilte Unterhaltung: /share/<share_id> — als eigene "Session" behandeln.
+        const share = location.pathname.match(/\/share\/([A-Za-z0-9_-]+)/);
+        return share ? 'share:' + share[1] : null;
+    }
+
+    // Geteilte Unterhaltung? Dort ist der Tokenstand ein statischer Stand vom Teilen.
+    function isShareView() {
+        return /^\/share\//.test(location.pathname);
     }
 
     function syncSessionFromLocation() {
@@ -738,12 +749,21 @@
                 const url = requestUrl(args[0]);
                 log('fetch →', url);
                 const isSettings = !!url && url.includes(SETTINGS_FRAGMENT);
-                if (url && (isSettings || URL_FRAGMENTS.some(f => url.includes(f)))) {
+                const isShare = !!url && url.includes(SHARE_FRAGMENT);
+                if (url && (isSettings || isShare || URL_FRAGMENTS.some(f => url.includes(f)))) {
                     const fromUrl = sessionIdFromUrl(url);
                     response.clone().json()
                         .then(json => {
                             if (isSettings) {
                                 applySettings(url, json);
+                                return;
+                            }
+                            if (isShare) {
+                                const shareTokens = extractTokenUsage(json);
+                                const shareSession = sessionFromLocation() || 'share';
+                                log('Share-Inhalt (fetch) →', shareTokens);
+                                if (shareTokens !== null) handle(shareTokens, shareSession);
+                                else handleSession(shareSession);
                                 return;
                             }
                             noteSession(json);
@@ -818,10 +838,20 @@
                 try {
                     const url = this.__tokenbadge_url || '';
                     const isSettings = url.includes(SETTINGS_FRAGMENT);
-                    if (!isSettings && !URL_FRAGMENTS.some(f => url.includes(f))) return;
+                    const isShare = url.includes(SHARE_FRAGMENT);
+                    if (!isSettings && !isShare && !URL_FRAGMENTS.some(f => url.includes(f))) return;
                     const json = JSON.parse(this.responseText);
                     if (isSettings) {
                         applySettings(url, json);
+                        return;
+                    }
+                    if (isShare) {
+                        // Geteilte Unterhaltung: Tokenstand steckt in data.biz_data.messages[].accumulated_token_usage
+                        const shareTokens = extractTokenUsage(json);
+                        const shareSession = sessionFromLocation() || 'share';
+                        log('Share-Inhalt →', shareTokens);
+                        if (shareTokens !== null) handle(shareTokens, shareSession);
+                        else handleSession(shareSession);
                         return;
                     }
                     noteSession(json);
@@ -843,5 +873,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.0.9 geladen.');
+    log('xDeepSeek Token Badge v1.1.0 geladen.');
 })();

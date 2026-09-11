@@ -7,6 +7,29 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.1.0] — 2026-09-11
+
+### Hinzugefügt
+- **Geteilte Unterhaltungen werden jetzt unterstützt.** In der Share-Ansicht
+  (`chat.deepseek.com/share/<id>`) blieb das Badge bisher leer, weil diese Seite über
+  `/api/v0/share/content` lädt und nicht über `/chat/history_messages`. Der Tokenstand steckt dort in
+  `data.biz_data.messages[].accumulated_token_usage` und wird nun ausgelesen; die Share-ID dient als
+  eigene „Session" (Session-Bindung + Merker). Im Tooltip steht dann
+  „Geteilte Unterhaltung — Stand zum Zeitpunkt des Teilens"; die Nachlade-Zeile entfällt, weil der
+  Stand statisch ist.
+
+### Verifiziert (echter Chat + geteilter Chat, ohne Reload-Trick)
+- Geteilter Chat `share/t5f3etgz9rhqfwe78b`: Badge **`152K / 891K  (17 %)`** (vorher `--`),
+  Serverwert **151.801** Token
+- Zugehöriger Original-Chat „Mallorca Wetter" (`327679f9-…`): **`152K / 891K  (17 %)`** —
+  identischer Wert, auch nach `F5` (keine Regression)
+
+### Werkzeuge (außerhalb des Repos, `browser-tools\`)
+- `deepseek-share-test.mjs` — analysiert Share-Seiten (alle JSON-Antworten, Tokenfelder, Badge)
+- `deepseek-find-chat.mjs` — sucht einen Chat per Titel im angemeldeten Account und prüft dort den Zähler
+
+---
+
 ## [1.0.9] — 2026-09-10
 
 ### Geändert

@@ -99,6 +99,11 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
 - **Klick** auf das Badge fixiert die Anzeige dauerhaft (praktisch für Screenshots); erneuter Klick
   oder `Escape` löst sie wieder.
 
+### Geteilte Chats (`chat.deepseek.com/share/…`)
+
+- Auch dort zeigt das Badge den Füllstand — allerdings den **Stand zum Zeitpunkt des Teilens**
+  (der geteilte Verlauf ist statisch). Der Tooltip weist mit „Geteilte Unterhaltung" darauf hin.
+
 ### Badge bleibt auf einem alten Wert stehen
 
 - Ab **v1.0.5** lädt das Skript den Wert nach jeder Antwort automatisch nach. Bleibt die Zahl trotzdem

@@ -1,7 +1,7 @@
 {
   "name": "xDeepSeek Token Badge",
   "name_de": "xDeepSeek Token-Anzeige",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.",
   "description_de": "Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.",
   "author": "immerzu",
@@ -41,6 +41,7 @@
   "primary_hook": "XMLHttpRequest.prototype.send",
   "history_cache_handling": "Bei cache_control=MERGE (0 Nachrichten) wird /chat/history_messages einmalig ohne cache_version/cache_reset_at nachgeladen (REPLACE-Antwort mit vollem Tokenstand).",
   "api_endpoint_fragment": "/chat/history_messages",
+  "share_endpoint_fragment": "/share/content (geteilte Unterhaltung; Tokenstand in biz_data.messages[])",
   "extracted_field": "data.biz_data.chat_messages[].accumulated_token_usage",
   "session_store": "localStorage xdsTokenBadge.sessionTokens (letzter Wert je Chat)",
   "position_store": "localStorage xdsTokenBadge.position ({x,y} in Viewport-Pixeln) — Badge per Ziehen verschiebbar, Doppelklick setzt zurück",
