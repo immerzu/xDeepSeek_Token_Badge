@@ -26,7 +26,7 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-live-send.mjs` | **Sendet eine echte Testnachricht** und protokolliert Request-/Response-Timeline, SSE-Frames (Suche nach `accumulated_token_usage`) und den Badge-Zustand alle 5 s → belegt, ob sich das Badge ohne Reload aktualisiert. `DS_URL` (leer = neuer Chat), `DS_MSG`, `DS_WAIT`. |
 | `deepseek-value-timing.mjs` | **Timing-Messung:** sendet eine Nachricht und fragt danach alle 2 s die History im Seitenkontext ab (Bearer-Token aus `localStorage`) → zeigt, ab wann der Server den neuen Tokenstand führt. `DS_WAIT_S` (Default 45). |
 | `deepseek-test-drag.mjs` | **Drag-Test (v1.0.7):** zieht das Badge mit der Maus, prüft `left`/`top` + `localStorage`-Eintrag, lädt neu (Position muss bleiben) und macht einen Doppelklick (zurück in die Ecke). Gibt `DRAG:CHECKS` mit fünf Prüfungen aus. |
-| `deepseek-test-tooltip.mjs` | **Tooltip-Test (v1.0.8):** Hover → sichtbar; **Tastendrücke (`a`, `Shift`, `Ctrl`) dürfen ihn nicht ausblenden**; Maus weg → aus; Klick pinnt, zweiter Klick löst; kein `title`-Attribut. Gibt `TIP:CHECKS` mit acht Prüfungen aus. |
+| `deepseek-test-tooltip.mjs` | **Tooltip-Test (v1.0.8/1.0.9):** Hover → sichtbar; **Tastendrücke (`a`, `Shift`, `Ctrl`) dürfen ihn nicht ausblenden**; Maus weg → aus; Klick pinnt, zweiter Klick löst; kein `title`-Attribut; **keine Zeilenumbrüche** (`TIP:LINES` vergleicht logische mit gerenderten Zeilen, `wraps` muss 0 sein). Gibt `TIP:CHECKS` mit neun Prüfungen aus. Für den Umbruch-Check einen Chat mit Wert öffnen (`DS_URL`). |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
 
