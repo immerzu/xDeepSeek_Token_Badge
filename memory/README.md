@@ -13,11 +13,13 @@ Dieser Ordner ist das dauerhafte Gedächtnis des Projekts. **Vor** Arbeiten am S
 
 ## Kurzfassung des aktuellen Stands
 
-- Skript **v1.0.7** ist auf Greasy Fork live (`https://greasyfork.org/de/scripts/595207.json`),
+- Skript **v1.0.8** ist auf Greasy Fork live (`https://greasyfork.org/de/scripts/595207.json`),
   Quelle ist `main/xdeepseek-token-badge.user.js`, Auto-Sync (periodisch, **kein Webhook**).
-- Badge zeigt dreistellig gerundet: `📊 217K / 891K  (24 %)`, exakte Werte im Tooltip.
+- Badge zeigt dreistellig gerundet: `📊 217K / 891K  (24 %)`; Details im **eigenen Tooltip**
+  (exakter Wert, Kontextgrenze, Nachlade-Status).
 - **Bedienung:** Badge mit der Maus **verschiebbar** (Position in `localStorage`, Doppelklick setzt
-  zurück in die Standardecke).
+  zurück in die Standardecke). Der Tooltip erscheint bei Hover, **bleibt bei Tastendruck stehen**
+  (screenshot-fähig) und wird per Klick fixiert (`Escape`/Klick löst ihn).
 - Bekannte Grenzen: Maximum über alle Nachrichten (nicht aktiver Zweig), Datei-Tokens nicht enthalten,
   Wert wird nach jeder Antwort nachgeladen (bis zu 35 s Backoff) — Details in der Analyse.
 - **Verlässlichkeit:** Der Badge-Wert ist der Serverwert (`accumulated_token_usage`). Im Chat

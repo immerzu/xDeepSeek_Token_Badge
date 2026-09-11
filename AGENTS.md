@@ -72,7 +72,8 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse: Tokenverlauf, Marker, Nachrichtenfelder),
   `deepseek-live-send.mjs` (sendet eine Testnachricht und prüft, ob das Badge ohne Reload aktualisiert),
   `deepseek-value-timing.mjs` (misst, ab wann der Server den neuen Tokenstand führt),
-  `deepseek-test-drag.mjs` (prüft Verschieben, gemerkte Position und Doppelklick-Reset des Badges).
+  `deepseek-test-drag.mjs` (prüft Verschieben, gemerkte Position und Doppelklick-Reset des Badges),
+  `deepseek-test-tooltip.mjs` (prüft, dass der Tooltip Tastendrücke übersteht und per Klick fixiert).
   **Ablauf, Befehle und erwartete Checks: `memory/TESTEN-userscript-deepseek.md`**
 - Skills: `greasy-fork-publish`, `userscript-beschreibungen-immerzu`, `github-immerzu`,
   `playwright-browser`, `tampermonkey-install-update`
@@ -102,6 +103,10 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   Doppelklick setzt in die Standardecke zurück. Wer Interaktionslogik ändert, muss beachten, dass das
   Badge jetzt Mausereignisse abfängt (nur auf seiner kleinen Fläche) und dass die Position
   Resize-sicher begrenzt wird.
+- **Kein natives `title`-Attribut (seit v1.0.8):** Es verschwindet bei jedem Tastendruck und machte
+  Screenshots unmöglich. Stattdessen eigenes Element `#deepseek-token-badge-tip`, gesteuert **nur**
+  über Mausereignisse (Hover rein, Verlassen raus), per Klick fixierbar, `Escape` löst. Wer die
+  Detailanzeige ändert, muss `setTip([...])` statt `title` verwenden.
 - **Anzeige-Konvention:** dreistellig gerundet (`📊 217K / 891K  (24 %)`), Prozent ganzzahlig
   (`<1 %` unter 1 %), exakte Werte und Grenzquelle im Tooltip.
 - **Modell-Selbstauskünfte im Chat sind keine Messwerte:** Zeilen wie `[ 76% von 100% gefüllt]`
