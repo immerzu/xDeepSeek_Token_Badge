@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.0.8
+// @version      1.0.9
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -69,7 +69,7 @@
     let lastRefetchAt  = 0;
     let lastRefreshAt  = 0;
     let lastMsgCount   = null;
-    let refreshInfo    = 'noch kein Nachladen nach einer Antwort';
+    let refreshInfo    = 'noch keins nach einer Antwort';
     let refreshSeq     = 0;
     let contextSize    = DEFAULT_CONTEXT_SIZE;   // wird aus den Settings aktualisiert
     let contextSource  = 'Rückfallwert';
@@ -113,7 +113,7 @@
         if (!tipContent) {
             tipContent = [
                 'DeepSeek Kontext-Füllstand — noch keine Daten',
-                'Klick fixiert diese Anzeige · Doppelklick setzt die Position zurück'
+                'Klick fixiert · Doppelklick setzt Position zurück'
             ].join('\n');
         }
         restorePosition();
@@ -138,7 +138,7 @@
         tipEl.style.cssText = [
             'position:fixed',
             'z-index:2147483647',
-            'max-width:360px',
+            'max-width:420px',
             'background:rgba(13,13,13,0.95)',
             'color:#fff',
             'padding:8px 10px',
@@ -346,8 +346,8 @@
             el.textContent = '📊 --';
             setTip([
                 'DeepSeek Kontext-Füllstand — noch keine Daten',
-                `Nachladen nach Antwort: ${refreshInfo}`,
-                'Klick fixiert diese Anzeige · Doppelklick setzt die Position zurück'
+                `Nachladen: ${refreshInfo}`,
+                'Klick fixiert · Doppelklick setzt Position zurück'
             ]);
             return;
         }
@@ -360,8 +360,8 @@
                 : 'Aktueller Wert aus der Server-Antwort',
             `Exakt: ${tokens.toLocaleString()} von ${contextSize.toLocaleString()} Token (${rawPct.toFixed(2).replace('.', ',')} %)`,
             `Kontextgrenze: ${contextSize.toLocaleString()} Token (${contextSource})`,
-            `Nachladen nach Antwort: ${refreshInfo}`,
-            'Klick fixiert diese Anzeige · Doppelklick setzt die Position zurück'
+            `Nachladen: ${refreshInfo}`,
+            'Klick fixiert · Doppelklick setzt Position zurück'
         ]);
     }
 
@@ -645,7 +645,7 @@
     // wachsendem Abstand, weil der Server den neuen Stand verzögert fortschreibt.
     function refreshAfterAnswer(sessionId, headers) {
         if (!sessionId) {
-            refreshInfo = 'abgebrochen: keine Session-ID erkannt';
+            refreshInfo = 'abgebrochen: keine Session-ID';
             renderValue(lastValue, lastStale);
             log('Refresh ohne Session-ID');
             return;
@@ -660,7 +660,7 @@
         const attempt = () => {
             if (seq !== refreshSeq) return;
             if (step >= REFRESH_STEPS.length) {
-                refreshInfo = `aufgegeben nach ${REFRESH_STEPS.length} Versuchen (Wert blieb unverändert)`;
+                refreshInfo = `aufgegeben nach ${REFRESH_STEPS.length} Versuchen (Wert unverändert)`;
                 renderValue(lastValue, lastStale);
                 log('Refresh aufgegeben für', sessionId);
                 return;
@@ -682,12 +682,12 @@
                 }
                 // Keine neue Nachricht in der History → es gibt nichts nachzuladen.
                 if (Number.isFinite(count) && Number.isFinite(beforeCount) && count <= beforeCount) {
-                    refreshInfo = `fertig: keine neue Nachricht (${count}), Wert bleibt ${tokens === null ? 'unbekannt' : tokens.toLocaleString()}`;
+                    refreshInfo = `fertig: keine neue Nachricht (${count}), Wert ${tokens === null ? 'unbekannt' : tokens.toLocaleString()}`;
                     renderValue(lastValue, lastStale);
                     log('Refresh beendet: Nachrichtenzahl unverändert', count);
                     return;
                 }
-                refreshInfo = `Versuch ${step}: ${tokens === null ? 'kein Wert erhalten' : tokens.toLocaleString() + ' Token (unverändert)'}, Nachrichten ${count}`;
+                refreshInfo = `Versuch ${step}: ${tokens === null ? 'kein Wert erhalten' : tokens.toLocaleString() + ' (unverändert)'}, ${count} Nachrichten`;
                 renderValue(lastValue, lastStale);
                 attempt();
             }, delay);
@@ -843,5 +843,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.0.8 geladen.');
+    log('xDeepSeek Token Badge v1.0.9 geladen.');
 })();

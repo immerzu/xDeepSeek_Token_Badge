@@ -7,6 +7,22 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.0.9] — 2026-09-10
+
+### Geändert
+- **Tooltip kompakter:** Die Statuszeilen brechen nicht mehr mitten im Satz um.
+  - Breite von 360 auf **420 px** erhöht
+  - Label `Nachladen nach Antwort:` → `Nachladen:`
+  - Statuswerte gekürzt, z. B. `noch kein Nachladen nach einer Antwort` → `noch keins nach einer Antwort`,
+    `Versuch 3: … Token (unverändert), Nachrichten 22` → `Versuch 3: … (unverändert), 22 Nachrichten`
+  - Bedienhinweis gekürzt: `Klick fixiert · Doppelklick setzt Position zurück`
+
+### Verifiziert (automatischer UI-Test)
+- Der Tooltip rendert **5 logische Zeilen als genau 5 Zeilen** (`wraps = 0`) — keine Umbrüche
+- Alle 9 Prüfungen grün (Hover, Tastendruck-Überleben, Maus-weg, Fixieren, Lösen, kein `title`, kein Umbruch)
+
+---
+
 ## [1.0.8] — 2026-09-10
 
 ### Behoben
