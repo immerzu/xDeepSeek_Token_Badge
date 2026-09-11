@@ -7,6 +7,26 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.0.8] — 2026-09-10
+
+### Behoben
+- **Der Tooltip verschwand bei jedem Tastendruck** — ein natives `title`-Attribut wird vom Browser
+  ausgeblendet, sobald eine Taste gedrückt wird. Damit waren Screenshots vom Tooltip unmöglich
+  (z. B. `Windows + Shift + S` blendete ihn sofort aus).
+- **Neu: eigener Tooltip** (`#deepseek-token-badge-tip`) mit mehrzeiliger Anzeige:
+  Zustand · `Exakt: … Token (… %)` · Kontextgrenze · `Nachladen nach Antwort: …` · Bedienhinweis.
+  Er wird **nur** durch Mausbewegung gesteuert: sichtbar ab Hover, ausgeblendet, wenn die Maus das
+  Badge verlässt (400 ms Verzögerung). **Tastendrücke haben keinen Einfluss.**
+- **Klick fixiert den Tooltip** (bleibt auch ohne Hover stehen — ideal für Screenshots);
+  erneuter Klick oder `Escape` löst ihn wieder. Das native `title`-Attribut ist entfernt.
+
+### Verifiziert (automatischer UI-Test)
+- Tooltip sichtbar bei Hover · **bleibt sichtbar nach `a`, `Shift`, `Ctrl`**
+- verschwindet nach Mausbewegung weg · Klick fixiert · zweiter Klick löst
+- kein `title`-Attribut mehr am Badge — alle 8 Prüfungen grün
+
+---
+
 ## [1.0.7] — 2026-09-10
 
 ### Hinzugefügt

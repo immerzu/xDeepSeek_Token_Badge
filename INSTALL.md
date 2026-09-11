@@ -91,6 +91,14 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
 - Komplett ausblenden: in der Konsole (`F12`) `document.getElementById('deepseek-token-badge').remove()` —
   nach `F5` kommt es zurück; dauerhaft nur durch Deaktivieren des Skripts im Tampermonkey-Dashboard.
 
+### Tooltip / Detailanzeige
+
+- **Maus über das Badge** → eigenes Fenster mit exaktem Wert, Kontextgrenze und Nachlade-Status.
+- Es bleibt **auch beim Drücken von Tasten** stehen (z. B. `Windows + Shift + S` für einen Screenshot) —
+  ausgeblendet wird es nur, wenn die Maus das Badge verlässt.
+- **Klick** auf das Badge fixiert die Anzeige dauerhaft (praktisch für Screenshots); erneuter Klick
+  oder `Escape` löst sie wieder.
+
 ### Badge bleibt auf einem alten Wert stehen
 
 - Ab **v1.0.5** lädt das Skript den Wert nach jeder Antwort automatisch nach. Bleibt die Zahl trotzdem

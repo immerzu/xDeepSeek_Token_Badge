@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.0.7
+// @version      1.0.8
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -57,6 +57,10 @@
     const log = (...a) => { if (DEBUG) console.log('[TokenBadge]', ...a); };
 
     let badgeEl        = null;
+    let tipEl          = null;    // eigener Tooltip (bleibt bei Tastendruck stehen)
+    let tipContent     = '';
+    let tipPinned      = false;
+    let tipHideTimer   = null;
     let posX           = null;    // gespeicherte Badge-Position (Viewport-Pixel)
     let posY           = null;
     let lastValue      = null;
@@ -104,12 +108,97 @@
             'opacity:0.92'
         ].join(';');
         badgeEl.textContent = '📊 --';
-        badgeEl.title = 'DeepSeek Kontext-Füllstand';
+        badgeEl.setAttribute('aria-label', 'DeepSeek Kontext-Füllstand');
         document.body.appendChild(badgeEl);
+        if (!tipContent) {
+            tipContent = [
+                'DeepSeek Kontext-Füllstand — noch keine Daten',
+                'Klick fixiert diese Anzeige · Doppelklick setzt die Position zurück'
+            ].join('\n');
+        }
         restorePosition();
         enableDrag(badgeEl);
+        enableTooltip(badgeEl);
         if (lastValue !== null) renderValue(lastValue, lastStale);
         return badgeEl;
+    }
+
+    // ---------------------------------------------------------------------
+    // Eigener Tooltip
+    // ---------------------------------------------------------------------
+    // Ein natives title-Attribut verschwindet, sobald eine Taste gedrückt wird —
+    // damit sind Screenshots unmöglich. Deshalb ein eigenes Element: es bleibt bei
+    // Tastendruck stehen und verschwindet erst, wenn die Maus das Badge verlässt.
+    // Klick fixiert den Tooltip (bleibt auch ohne Hover), Escape oder erneuter Klick löst ihn.
+    function ensureTip() {
+        if (tipEl && document.body.contains(tipEl)) return tipEl;
+        if (!document.body) return null;
+        tipEl = document.createElement('div');
+        tipEl.id = 'deepseek-token-badge-tip';
+        tipEl.style.cssText = [
+            'position:fixed',
+            'z-index:2147483647',
+            'max-width:360px',
+            'background:rgba(13,13,13,0.95)',
+            'color:#fff',
+            'padding:8px 10px',
+            'border-radius:8px',
+            'font:400 11px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+            'white-space:pre-line',
+            'box-shadow:0 4px 16px rgba(0,0,0,0.35)',
+            'border:1px solid rgba(255,255,255,0.12)',
+            'pointer-events:none',
+            'display:none'
+        ].join(';');
+        document.body.appendChild(tipEl);
+        return tipEl;
+    }
+
+    function placeTip() {
+        const t = tipEl;
+        const b = badgeEl;
+        if (!t || !b) return;
+        const r = b.getBoundingClientRect();
+        t.style.display = 'block';
+        const tw = t.offsetWidth;
+        const th = t.offsetHeight;
+        let x = r.left;
+        if (x + tw > window.innerWidth - 8) x = window.innerWidth - tw - 8;
+        if (x < 8) x = 8;
+        let y = r.top - th - 8;                       // bevorzugt über dem Badge
+        if (y < 8) y = r.bottom + 8;                  // sonst darunter
+        if (y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
+        t.style.left = x + 'px';
+        t.style.top = y + 'px';
+    }
+
+    function showTip() {
+        const t = ensureTip();
+        if (!t) return;
+        if (tipHideTimer) { window.clearTimeout(tipHideTimer); tipHideTimer = null; }
+        t.textContent = tipContent || 'DeepSeek Kontext-Füllstand';
+        placeTip();
+    }
+
+    function hideTip(force) {
+        if (tipPinned && !force) return;
+        if (tipHideTimer) { window.clearTimeout(tipHideTimer); tipHideTimer = null; }
+        if (tipEl) tipEl.style.display = 'none';
+    }
+
+    function enableTooltip(el) {
+        el.addEventListener('mouseenter', () => showTip());
+        el.addEventListener('mouseleave', () => {
+            if (tipHideTimer) window.clearTimeout(tipHideTimer);
+            tipHideTimer = window.setTimeout(() => { tipHideTimer = null; hideTip(false); }, 400);
+        });
+        // Tastendrücke (z. B. Windows+Shift+S für einen Screenshot) blenden NICHTS aus.
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && tipPinned) {
+                tipPinned = false;
+                hideTip(true);
+            }
+        }, true);
     }
 
     // ---------------------------------------------------------------------
@@ -133,6 +222,7 @@
         el.style.top = posY + 'px';
         el.style.right = 'auto';
         el.style.bottom = 'auto';
+        if (tipEl && tipEl.style.display !== 'none') placeTip();
     }
 
     function savePosition() {
@@ -159,6 +249,7 @@
             badgeEl.style.right = '16px';
             badgeEl.style.bottom = '16px';
         }
+        if (tipEl && tipEl.style.display !== 'none') placeTip();
     }
 
     function enableDrag(el) {
@@ -180,6 +271,7 @@
             origY = r.top;
             el.style.cursor = 'grabbing';
             try { el.setPointerCapture(e.pointerId); } catch (err) { log('capture error', err); }
+            hideTip(true);                               // beim Anfassen ausblenden
             e.preventDefault();
             e.stopPropagation();
         });
@@ -201,6 +293,16 @@
             if (moved) {
                 savePosition();
                 log('Position gemerkt', posX, posY);
+                return;
+            }
+            // Kurzer Klick ohne Ziehen: Tooltip fixieren bzw. wieder lösen.
+            tipPinned = !tipPinned;
+            if (tipPinned) {
+                showTip();
+                log('Tooltip fixiert');
+            } else {
+                hideTip(true);
+                log('Tooltip gelöst');
             }
         };
 
@@ -216,6 +318,7 @@
 
     window.addEventListener('resize', () => {
         if (posX !== null) setPosition(posX, posY);
+        if (tipEl && tipEl.style.display !== 'none') placeTip();
     });
 
     // Kompakte Darstellung: dreistellig gerundet (192K, 891K, 1,5M).
@@ -230,26 +333,36 @@
         return String(Math.round(n));
     }
 
+    function setTip(lines) {
+        tipContent = lines.join('\n');
+        if (tipEl && tipEl.style.display !== 'none') showTip();   // sichtbaren Tooltip aktualisieren
+    }
+
     function renderValue(tokens, stale) {
         const el = ensureBadge();
         if (!el) return;
         lastStale = !!stale;
         if (tokens == null || !Number.isFinite(tokens)) {
             el.textContent = '📊 --';
-            el.title = 'DeepSeek Kontext-Füllstand — noch keine Daten';
+            setTip([
+                'DeepSeek Kontext-Füllstand — noch keine Daten',
+                `Nachladen nach Antwort: ${refreshInfo}`,
+                'Klick fixiert diese Anzeige · Doppelklick setzt die Position zurück'
+            ]);
             return;
         }
         const rawPct = tokens / contextSize * 100;
         const pct = rawPct > 0 && rawPct < 1 ? '<1' : String(Math.round(rawPct));
         el.textContent = `📊 ${stale ? '~' : ''}${formatTokens(tokens)} / ${formatTokens(contextSize)}  (${pct} %)`;
-        el.title = [
+        setTip([
             stale
                 ? 'Letzter bekannter Wert für diesen Chat (Server lieferte nur ein Delta)'
                 : 'Aktueller Wert aus der Server-Antwort',
             `Exakt: ${tokens.toLocaleString()} von ${contextSize.toLocaleString()} Token (${rawPct.toFixed(2).replace('.', ',')} %)`,
-            `Kontextgrenze aus DeepSeek-Settings: ${contextSource}`,
-            `Nachladen nach Antwort: ${refreshInfo}`
-        ].join(' · ');
+            `Kontextgrenze: ${contextSize.toLocaleString()} Token (${contextSource})`,
+            `Nachladen nach Antwort: ${refreshInfo}`,
+            'Klick fixiert diese Anzeige · Doppelklick setzt die Position zurück'
+        ]);
     }
 
     if (document.readyState === 'loading') {
@@ -730,5 +843,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.0.7 geladen.');
+    log('xDeepSeek Token Badge v1.0.8 geladen.');
 })();

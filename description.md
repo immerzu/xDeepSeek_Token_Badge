@@ -17,6 +17,7 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 - Null Konfiguration — installieren und vergessen
 - 100 % lokal — kein Server, keine externen Aufrufe, kein Tracking
 - Verschiebbar — das Badge lässt sich mit der Maus an jede Stelle ziehen; die Position bleibt erhalten, Doppelklick setzt es zurück
+- Detailanzeige — Tooltip mit exaktem Wert, Kontextgrenze und Nachlade-Status; er bleibt beim Drücken von Tasten stehen (screenshot-freundlich) und lässt sich per Klick fixieren
 - Reload-fest — merkt sich den letzten Wert je Chat (mit `~` markiert, bis der Serverwert kommt)
 
 **Bedienung**
@@ -60,6 +61,7 @@ DeepSeek отбрасывает самые старые части перепи�
 - Без настройки — установить и забыть
 - 100 % локально — без сервера, без внешних запросов, без отслеживания
 - Перетаскивание — значок можно перетащить мышью в любое место; положение сохраняется, двойной щелчок возвращает его назад
+- Подробная информация — подсказка с точным значением, границей контекста и статусом обновления; не исчезает при нажатии клавиш (удобно для скриншотов), фиксируется щелчком
 - Устойчивость к перезагрузке — последнее значение по каждому чату запоминается (помечается `~`, пока не придёт значение с сервера)
 
 **Управление**
@@ -103,6 +105,7 @@ That way you can see at a glance when it is time to start a new chat.
 - Zero configuration — install and forget
 - 100 % local — no server, no external calls, no tracking
 - Draggable — the badge can be dragged anywhere with the mouse; the position is remembered, a double-click moves it back
+- Details on demand — tooltip with the exact value, context limit and refresh status; it stays visible while you press keys (screenshot-friendly) and can be pinned by clicking
 - Reload-proof — remembers the last value per chat (marked `~` until the server value arrives)
 
 **Usage**

@@ -62,6 +62,8 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 | Badge ist sichtbar | Wert wird automatisch beim Chat-Wechsel und nach jeder Antwort aktualisiert |
 | **Ziehen** mit der Maus | Badge verschieben — die Position wird gemerkt (auch nach Reload) |
 | **Doppelklick** auf das Badge | zurück in die Standardecke unten rechts |
+| **Maus über dem Badge** | eigenes Tooltip mit exaktem Wert, Kontextgrenze und Nachlade-Status — bleibt auch beim Drücken von Tasten stehen (screenshot-freundlich) |
+| **Klick** auf das Badge | Tooltip fixieren (bleibt ohne Hover stehen); erneuter Klick oder `Escape` löst ihn |
 | Badge zeigt `~406K / 891K  (46 %)` | Letzter bekannter Wert für diesen Chat — der Server lieferte nur ein Delta; der aktuelle Wert wird nachgeladen |
 | Badge zeigt `--` | Noch keine API-Antwort abgefangen — einmal `F5` drücken |
 | Badge fehlt komplett | Prüfen, ob Tampermonkey aktiv ist und das Skript in der Liste steht |
