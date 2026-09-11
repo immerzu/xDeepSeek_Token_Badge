@@ -7,6 +7,27 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.1.1] — 2026-09-11
+
+### Behoben
+- **Der Tooltip (Detailanzeige) verschwand nicht mehr zuverlässig bzw. blieb hängen.** Drei Ursachen:
+  1. Er hing nur an „Maus verlässt das Badge". Jetzt schließt ihn auch eine **Mausbewegung auf dem
+     Badge** (ab 6 px, aber erst nach 250 ms Ruhe — damit das Anfahren ihn nicht sofort wieder
+     schließt). Tastendrücke blenden weiterhin **nichts** aus.
+  2. **Logikfehler beim Fixieren:** Ein Klick setzte den Pin immer auf „an" (ein zweiter Klick konnte
+     ihn nie lösen, weil `pointerdown` ihn vorher zurücksetzte). Jetzt toggelt der Klick korrekt, und
+     **Verschieben** löst eine Fixierung.
+  3. **Hängender Tooltip nach SPA-Rerender:** Baut die Seite das Badge neu auf, wird der
+     Tooltip-Zustand (Pin + Sichtbarkeit) zurückgesetzt — vorher blieb er ohne `mouseleave`-Handler
+     dauerhaft stehen.
+
+### Verifiziert (12 automatische UI-Checks, echter Chat)
+Hover → sichtbar · Tastendruck `a`/`Shift`/`Ctrl` → bleibt sichtbar · **Mausbewegung auf dem Badge →
+ausgeblendet** · Klick → fixiert (überlebt Mausbewegung, Maus-weg und Tastendruck) · zweiter Klick →
+gelöst · 5 Zeilen ohne Umbruch · kein `title`-Attribut.
+
+---
+
 ## [1.1.0] — 2026-09-11
 
 ### Hinzugefügt

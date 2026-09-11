@@ -94,10 +94,11 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
 ### Tooltip / Detailanzeige
 
 - **Maus über das Badge** → eigenes Fenster mit exaktem Wert, Kontextgrenze und Nachlade-Status.
-- Es bleibt **auch beim Drücken von Tasten** stehen (z. B. `Windows + Shift + S` für einen Screenshot) —
-  ausgeblendet wird es nur, wenn die Maus das Badge verlässt.
-- **Klick** auf das Badge fixiert die Anzeige dauerhaft (praktisch für Screenshots); erneuter Klick
-  oder `Escape` löst sie wieder.
+- Es bleibt **auch beim Drücken von Tasten** stehen (z. B. `Windows + Shift + S` für einen Screenshot).
+  Ausgeblendet wird es, sobald du die Maus **bewegst** oder das Badge verlässt.
+- **Klick** auf das Badge **fixiert** die Anzeige: dann bleibt sie auch bei Mausbewegung stehen
+  (ideal für Screenshots). Erneuter Klick oder `Escape` löst die Fixierung.
+- **Ziehen** verschiebt das Badge und löst dabei eine Fixierung.
 
 ### Geteilte Chats (`chat.deepseek.com/share/…`)
 

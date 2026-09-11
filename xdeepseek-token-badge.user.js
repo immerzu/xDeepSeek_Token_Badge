@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.1.0
+// @version      1.1.1
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -85,6 +85,11 @@
     function ensureBadge() {
         if (badgeEl && document.body.contains(badgeEl)) return badgeEl;
         if (!document.body) return null;
+
+        // Neues Element (z. B. nach einem SPA-Rerender der Seite): alten Tooltip-Zustand aufräumen,
+        // sonst bliebe eine sichtbare Anzeige ohne mouseleave-Handler hängen.
+        tipPinned = false;
+        hideTip(true);
 
         badgeEl = document.createElement('div');
         badgeEl.id = 'deepseek-token-badge';
@@ -188,16 +193,53 @@
     }
 
     function enableTooltip(el) {
-        el.addEventListener('mouseenter', () => showTip());
-        el.addEventListener('mouseleave', () => {
-            if (tipHideTimer) window.clearTimeout(tipHideTimer);
-            tipHideTimer = window.setTimeout(() => { tipHideTimer = null; hideTip(false); }, 400);
+        let armed = false;        // erst nach kurzer Ruhe zählt "Bewegung" als Schließgeste
+        let armTimer = null;
+        let lastX = null;
+        let lastY = null;
+
+        const disarm = () => {
+            armed = false;
+            if (armTimer) { window.clearTimeout(armTimer); armTimer = null; }
+        };
+
+        el.addEventListener('mouseenter', () => {
+            disarm();
+            lastX = null;
+            lastY = null;
+            // Nach 250 ms ohne Bewegung ist der Tooltip "scharf" — dann schließt ihn Mausbewegung.
+            armTimer = window.setTimeout(() => { armed = true; armTimer = null; }, 250);
+            showTip();
         });
+
+        // Mausbewegung blendet aus (Tastendrücke NICHT) — außer der Tooltip ist per Klick fixiert.
+        el.addEventListener('pointermove', (e) => {
+            if (tipPinned) return;
+            const moved = lastX !== null &&
+                (Math.abs(e.clientX - lastX) + Math.abs(e.clientY - lastY)) >= 6;
+            if (moved) {
+                const wasArmed = armed;
+                disarm();
+                if (wasArmed) hideTip(false);
+            }
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        el.addEventListener('mouseleave', () => {
+            disarm();
+            lastX = null;
+            lastY = null;
+            if (tipHideTimer) window.clearTimeout(tipHideTimer);
+            tipHideTimer = window.setTimeout(() => { tipHideTimer = null; hideTip(false); }, 250);
+        });
+
         // Tastendrücke (z. B. Windows+Shift+S für einen Screenshot) blenden NICHTS aus.
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && tipPinned) {
                 tipPinned = false;
                 hideTip(true);
+                log('Tooltip gelöst (Escape)');
             }
         }, true);
     }
@@ -292,6 +334,7 @@
             el.style.cursor = 'grab';
             try { el.releasePointerCapture(e.pointerId); } catch (err) { log('release error', err); }
             if (moved) {
+                tipPinned = false;                       // Verschieben löst eine Fixierung
                 savePosition();
                 log('Position gemerkt', posX, posY);
                 return;
@@ -873,5 +916,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.1.0 geladen.');
+    log('xDeepSeek Token Badge v1.1.1 geladen.');
 })();
