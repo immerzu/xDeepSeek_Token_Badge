@@ -25,6 +25,7 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-analyze-context.mjs` | Tiefenanalyse eines Chats: kompletter Seitentext (Datei), Prozent-Marker im Chatverlauf, **alle** API-Nachrichten mit Tokenstand/Rolle/`fragments`-Flags, DOM-Nachrichtenzahl, Badge-Zustand. |
 | `deepseek-live-send.mjs` | **Sendet eine echte Testnachricht** und protokolliert Request-/Response-Timeline, SSE-Frames (Suche nach `accumulated_token_usage`) und den Badge-Zustand alle 5 s → belegt, ob sich das Badge ohne Reload aktualisiert. `DS_URL` (leer = neuer Chat), `DS_MSG`, `DS_WAIT`. |
 | `deepseek-value-timing.mjs` | **Timing-Messung:** sendet eine Nachricht und fragt danach alle 2 s die History im Seitenkontext ab (Bearer-Token aus `localStorage`) → zeigt, ab wann der Server den neuen Tokenstand führt. `DS_WAIT_S` (Default 45). |
+| `deepseek-test-drag.mjs` | **Drag-Test (v1.0.7):** zieht das Badge mit der Maus, prüft `left`/`top` + `localStorage`-Eintrag, lädt neu (Position muss bleiben) und macht einen Doppelklick (zurück in die Ecke). Gibt `DRAG:CHECKS` mit fünf Prüfungen aus. |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
 

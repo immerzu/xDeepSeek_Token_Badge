@@ -71,7 +71,8 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   `deepseek-open-chat.mjs` (einzelnen Chat öffnen und Badge prüfen, Fenster bleibt offen),
   `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse: Tokenverlauf, Marker, Nachrichtenfelder),
   `deepseek-live-send.mjs` (sendet eine Testnachricht und prüft, ob das Badge ohne Reload aktualisiert),
-  `deepseek-value-timing.mjs` (misst, ab wann der Server den neuen Tokenstand führt).
+  `deepseek-value-timing.mjs` (misst, ab wann der Server den neuen Tokenstand führt),
+  `deepseek-test-drag.mjs` (prüft Verschieben, gemerkte Position und Doppelklick-Reset des Badges).
   **Ablauf, Befehle und erwartete Checks: `memory/TESTEN-userscript-deepseek.md`**
 - Skills: `greasy-fork-publish`, `userscript-beschreibungen-immerzu`, `github-immerzu`,
   `playwright-browser`, `tampermonkey-install-update`
@@ -96,6 +97,11 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   Belege, Messwerte und Codeanker: `memory/ANALYSE-20260910-deepseek-history-cache-und-anzeige.md`.
 - **Kontextgrenze nicht raten:** Sie kommt aus `/api/v0/client/settings?scope=model|main`
   (`model_configs[].file_feature.token_limit(_with_thinking)`, derzeit **890.880**; nicht 1 Mio.).
+- **Badge-Bedienung (seit v1.0.7):** Das Badge hat `pointer-events: auto` (vorher `none`) und ist per
+  Pointer-Events **verschiebbar**; die Position liegt in `localStorage` (`xdsTokenBadge.position`),
+  Doppelklick setzt in die Standardecke zurück. Wer Interaktionslogik ändert, muss beachten, dass das
+  Badge jetzt Mausereignisse abfängt (nur auf seiner kleinen Fläche) und dass die Position
+  Resize-sicher begrenzt wird.
 - **Anzeige-Konvention:** dreistellig gerundet (`📊 217K / 891K  (24 %)`), Prozent ganzzahlig
   (`<1 %` unter 1 %), exakte Werte und Grenzquelle im Tooltip.
 - **Modell-Selbstauskünfte im Chat sind keine Messwerte:** Zeilen wie `[ 76% von 100% gefüllt]`
