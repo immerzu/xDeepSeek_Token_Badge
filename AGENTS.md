@@ -73,7 +73,9 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   `deepseek-live-send.mjs` (sendet eine Testnachricht und prüft, ob das Badge ohne Reload aktualisiert),
   `deepseek-value-timing.mjs` (misst, ab wann der Server den neuen Tokenstand führt),
   `deepseek-test-drag.mjs` (prüft Verschieben, gemerkte Position und Doppelklick-Reset des Badges),
-  `deepseek-test-tooltip.mjs` (prüft, dass der Tooltip Tastendrücke übersteht und per Klick fixiert).
+  `deepseek-test-tooltip.mjs` (prüft, dass der Tooltip Tastendrücke übersteht und per Klick fixiert),
+  `deepseek-share-test.mjs` (analysiert Share-Seiten `/share/<id>` samt Tokenstand),
+  `deepseek-find-chat.mjs` (sucht einen Chat per Titel im Account und prüft dort den Zähler).
   **Ablauf, Befehle und erwartete Checks: `memory/TESTEN-userscript-deepseek.md`**
 - Skills: `greasy-fork-publish`, `userscript-beschreibungen-immerzu`, `github-immerzu`,
   `playwright-browser`, `tampermonkey-install-update`
@@ -109,6 +111,10 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   Doppelklick setzt in die Standardecke zurück. Wer Interaktionslogik ändert, muss beachten, dass das
   Badge jetzt Mausereignisse abfängt (nur auf seiner kleinen Fläche) und dass die Position
   Resize-sicher begrenzt wird.
+- **Geteilte Chats laufen über einen eigenen Endpunkt:** `/share/<id>` lädt `GET /api/v0/share/content?share_id=…`;
+  der Tokenstand liegt in `data.biz_data.messages[].accumulated_token_usage` (nicht `chat_messages`),
+  und es gibt dort keine `chat_session.id` → die Share-ID wird als `share:<id>` geführt. Seit v1.1.0
+  liest das Skript diesen Endpunkt in beiden Hooks aus (vorher blieb das Badge dort auf `--`).
 - **Kein natives `title`-Attribut (seit v1.0.8):** Es verschwindet bei jedem Tastendruck und machte
   Screenshots unmöglich. Stattdessen eigenes Element `#deepseek-token-badge-tip`, gesteuert **nur**
   über Mausereignisse (Hover rein, Verlassen raus), per Klick fixierbar, `Escape` löst. Wer die

@@ -236,11 +236,48 @@ bleibt er unverändert (Stillstand ist dann korrekt, kein Fehler). Bei längeren
 Änderungen unter ~1.000 Token sind in der Leiste **nicht** sichtbar (`184K` bleibt `184K`). Ob sich
 der Wert real bewegt hat, zeigt der **Tooltip** (exakte Tokenzahl + Prozent mit zwei Dezimalen).
 
-## 9. Wichtige Codeanker (für künftige Änderungen)
+## 9. Nachtrag v1.1.0 — geteilte Chats (`/share/…`) liefen ins Leere
+
+**Anlass:** Der Nutzer legte zum Testen einen geteilten Chat an:
+`https://chat.deepseek.com/share/t5f3etgz9rhqfwe78b` (Thema Mallorca-Wettervorhersage).
+
+**Messung** (`deepseek-share-test.mjs`, alle JSON-Antworten der Share-Seite):
+
+```
+/api/v0/share/content?share_id=t5f3etgz9rhqfwe78b  → acc=JA, max=151801
+Badge (v1.0.9): "📊 --"      ← kein Wert, obwohl die Antwort ihn enthält
+```
+
+Struktur der Share-Antwort: `data.biz_data` = `{ title, messages[], model_type }` — **kein**
+`chat_messages`, **keine** `chat_session.id`, und der Endpunkt heißt `/share/content` (nicht
+`/chat/history_messages`). Deshalb griff keiner der bestehenden Hooks.
+
+**Fix (Commit `c653ee3`):**
+
+1. Neue Konstante `SHARE_FRAGMENT = '/share/content'`; XHR- **und** fetch-Hook lesen Share-Antworten
+   und ziehen den Tokenstand über die bestehende rekursive Extraktion aus `messages[].accumulated_token_usage`.
+2. `sessionFromLocation()` erkennt zusätzlich `/share/<id>` und liefert `share:<id>` → eigene
+   Session-Bindung + Merker-Eintrag.
+3. Tooltip unterscheidet den Kontext: „Geteilte Unterhaltung — Stand zum Zeitpunkt des Teilens";
+   die Nachlade-Zeile entfällt dort (der geteilte Verlauf ist statisch).
+
+**Verifikation:**
+
+| Kontext | Wert |
+|---|---|
+| Geteilter Chat `share/t5f3etgz9rhqfwe78b` | `📊 152K / 891K  (17 %)` = **151.801** Token |
+| Original-Chat „Mallorca Wetter" (`327679f9-380e-4673-923c-25db1b4f122c`) | identisch, auch nach `F5` |
+
+Der Original-Chat wurde über die **Chat-Liste des Accounts** gefunden (`chat_session/fetch_page`,
+Titelsuche „mallorca") — Werkzeug: `deepseek-find-chat.mjs`. Beide Werte stimmen exakt überein, d. h.
+die Anzeige ist auch im geteilten Kontext korrekt.
+
+## 10. Wichtige Codeanker (für künftige Änderungen)
 
 | Zweck | Wert |
 |---|---|
 | Kontextgrenze (Tokenstand) | `accumulated_token_usage` in `data.biz_data.chat_messages[]` |
+| Tokenstand (geteilter Chat) | `accumulated_token_usage` in `data.biz_data.messages[]` — Endpunkt `GET /api/v0/share/content?share_id=…` |
 | Kontextgrenze (Limit) | `data.biz_data.settings.model_configs[].file_feature.token_limit(_with_thinking)` |
 | Endpunkt History | `GET /api/v0/chat/history_messages?chat_session_id=…[&cache_version=…&cache_reset_at=…]` |
 | Endpunkt Settings | `GET /api/v0/client/settings?did=…&scope=model\|main` |
@@ -249,7 +286,7 @@ der Wert real bewegt hat, zeigt der **Tooltip** (exakte Tokenzahl + Prozent mit 
 | Netzwerkweg | `XMLHttpRequest` (fetch nur Absicherung) |
 | Merker | `localStorage.xdsTokenBadge.sessionTokens` |
 
-## 10. Umgebungs-Erkenntnisse (wiederverwendbar)
+## 11. Umgebungs-Erkenntnisse (wiederverwendbar)
 
 - **GF-Auto-Sync ist NICHT webhook-basiert:** kein GitHub-Hook im Repo
   (`gh api repos/immerzu/xDeepSeek_Token_Badge/hooks` → leer) → GF zieht periodisch.
@@ -271,7 +308,7 @@ der Wert real bewegt hat, zeigt der **Tooltip** (exakte Tokenzahl + Prozent mit 
 - **Meine Fehlspur:** Ein TM-Check über `GM_info` / `script[src*=tampermonkey]` ist untauglich
   (beides existiert so nicht) — er meldete fälschlich „kein TM".
 
-## 11. Offene Punkte
+## 12. Offene Punkte
 
 - [ ] Aktiven **Zweig** statt Maximum zählen (parent_id-Kette + `currentChildIndex`).
 - [ ] **Datei-Tokens** berücksichtigen (App addiert `getFilesTokenCount`).
@@ -280,7 +317,7 @@ der Wert real bewegt hat, zeigt der **Tooltip** (exakte Tokenzahl + Prozent mit 
 - [ ] Optional: Wert aus SSE-Deltas (`/api/v0/chat/completion`) mitlesen → live statt nur beim Load.
 - [ ] Optional: GF-Tags (`deepseek`, `token`, `context`, `badge`, `chat`) im GF-UI ergänzen.
 
-## 12. Commits dieser Session
+## 13. Commits dieser Session
 
 | Commit | Inhalt |
 |---|---|
@@ -293,6 +330,10 @@ der Wert real bewegt hat, zeigt der **Tooltip** (exakte Tokenzahl + Prozent mit 
 | `be712bc` | Memory: Werkzeuge/Befunde der Chat-Analyse nachgetragen |
 | `d2c7b2c` | v1.0.5 — Nachladen am Ende des Antwort-Streams (Badge aktualisiert ohne F5) |
 | `90806c0` | v1.0.6 — Refresh-Backoff, Nachrichtenzahl-Prüfung, Selbstdiagnose im Tooltip, Debug-Fassung |
+| `cb052d6` | v1.0.7 — Badge verschiebbar (Position in `localStorage`, Doppelklick-Reset) |
+| `22b1cd9` | v1.0.8 — eigener Tooltip statt `title` (überlebt Tastendruck, per Klick fixierbar) |
+| `9568979` | v1.0.9 — Tooltip kompakter (max-width 420 px, gekürzte Statuszeilen) |
+| `c653ee3` | v1.1.0 — geteilte Chats unterstützt (`/api/v0/share/content`) |
 
 Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
 Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:

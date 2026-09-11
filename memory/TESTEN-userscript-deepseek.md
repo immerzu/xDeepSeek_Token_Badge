@@ -32,6 +32,8 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-value-timing.mjs` | **Timing-Messung:** sendet eine Nachricht und fragt danach alle 2 s die History im Seitenkontext ab (Bearer-Token aus `localStorage`) → zeigt, ab wann der Server den neuen Tokenstand führt. `DS_WAIT_S` (Default 45). |
 | `deepseek-test-drag.mjs` | **Drag-Test (v1.0.7):** zieht das Badge mit der Maus, prüft `left`/`top` + `localStorage`-Eintrag, lädt neu (Position muss bleiben) und macht einen Doppelklick (zurück in die Ecke). Gibt `DRAG:CHECKS` mit fünf Prüfungen aus. |
 | `deepseek-test-tooltip.mjs` | **Tooltip-Test (v1.0.8/1.0.9):** Hover → sichtbar; **Tastendrücke (`a`, `Shift`, `Ctrl`) dürfen ihn nicht ausblenden**; Maus weg → aus; Klick pinnt, zweiter Klick löst; kein `title`-Attribut; **keine Zeilenumbrüche** (`TIP:LINES` vergleicht logische mit gerenderten Zeilen, `wraps` muss 0 sein). Gibt `TIP:CHECKS` mit neun Prüfungen aus. Für den Umbruch-Check einen Chat mit Wert öffnen (`DS_URL`). |
+| `deepseek-share-test.mjs` | **Geteilte Chats (v1.1.0):** öffnet eine Share-URL (`DS_URL=https://chat.deepseek.com/share/<id>`), protokolliert **alle** JSON-Antworten (Endpoint, Struktur, Tokenfelder) und liest Badge + Tooltip + Merker. Belegt, dass `/api/v0/share/content` den Tokenstand enthält. |
+| `deepseek-find-chat.mjs` | **Chat im Account finden:** lädt die Chat-Liste (`chat_session/fetch_page`, Bearer-Token), filtert nach `DS_TERMS` (Komma-getrennt), öffnet den Treffer (`DS_PICK`) und prüft Badge + `history_messages` inkl. Reload. So wurde der Original-Chat zum geteilten Chat gefunden. |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
 
