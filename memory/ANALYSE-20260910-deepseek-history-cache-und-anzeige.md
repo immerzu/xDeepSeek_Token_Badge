@@ -341,3 +341,4 @@ Tokenverlauf, Marker-Suche, Nachrichtenfelder, DOM-Zählung) — dokumentiert in
 [`TESTEN-userscript-deepseek.md`](TESTEN-userscript-deepseek.md).
 
 Testrezept für künftige Änderungen: siehe [`TESTEN-userscript-deepseek.md`](TESTEN-userscript-deepseek.md).
+

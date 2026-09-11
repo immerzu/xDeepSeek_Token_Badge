@@ -13,10 +13,12 @@ Dieser Ordner ist das dauerhafte Gedächtnis des Projekts. **Vor** Arbeiten am S
 
 ## Kurzfassung des aktuellen Stands
 
-- Skript **v1.1.0** ist auf Greasy Fork live (`https://greasyfork.org/de/scripts/595207.json`),
+- Skript **v1.1.1** ist auf Greasy Fork live (`https://greasyfork.org/de/scripts/595207.json`),
   Quelle ist `main/xdeepseek-token-badge.user.js`, Auto-Sync (periodisch, **kein Webhook**).
 - Badge zeigt dreistellig gerundet: `📊 217K / 891K  (24 %)`; Details im **eigenen Tooltip**
   (exakter Wert, Kontextgrenze, Nachlade-Status) — 5 Zeilen ohne Umbrüche (max-width 420 px).
+- Tooltip: Tastendruck lässt ihn stehen (screenshot-fähig), **Mausbewegung blendet ihn aus**,
+  Klick fixiert ihn (zweiter Klick/`Escape` löst).
 - **Auch geteilte Chats** (`/share/<id>`) werden ausgelesen (`/api/v0/share/content`) — dort gilt der
   Stand zum Zeitpunkt des Teilens.
 - **Bedienung:** Badge mit der Maus **verschiebbar** (Position in `localStorage`, Doppelklick setzt

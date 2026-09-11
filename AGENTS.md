@@ -117,8 +117,14 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   liest das Skript diesen Endpunkt in beiden Hooks aus (vorher blieb das Badge dort auf `--`).
 - **Kein natives `title`-Attribut (seit v1.0.8):** Es verschwindet bei jedem Tastendruck und machte
   Screenshots unmöglich. Stattdessen eigenes Element `#deepseek-token-badge-tip`, gesteuert **nur**
-  über Mausereignisse (Hover rein, Verlassen raus), per Klick fixierbar, `Escape` löst. Wer die
-  Detailanzeige ändert, muss `setTip([...])` statt `title` verwenden.
+  über Mausereignisse. Wer die Detailanzeige ändert, muss `setTip([...])` statt `title` verwenden.
+- **Tooltip-Verhalten (v1.1.1, getestet):** Erscheint bei Hover; **Tastendrücke blenden ihn nicht aus**;
+  **Mausbewegung auf dem Badge blendet ihn aus** (ab 6 px, erst nach 250 ms Ruhe, damit das Anfahren
+  ihn nicht sofort schließt); Verlassen blendet nach 250 ms aus. **Klick toggelt die Fixierung**
+  (fixiert überlebt Mausbewegung/-verlassen/Tastendruck, `Escape` löst), **Verschieben löst die
+  Fixierung**, und bei neu aufgebautem Badge (SPA-Rerender) wird der Tooltip-Zustand zurückgesetzt.
+  Fallstrick aus der Praxis: `pointerdown` darf den Pin **nicht** auf `false` setzen — sonst kann
+  jeder Klick nur fixieren und nie lösen (der Toggle im `pointerup` kippt dann immer auf `true`).
 - **Anzeige-Konvention:** dreistellig gerundet (`📊 217K / 891K  (24 %)`), Prozent ganzzahlig
   (`<1 %` unter 1 %), exakte Werte und Grenzquelle im Tooltip.
 - **Modell-Selbstauskünfte im Chat sind keine Messwerte:** Zeilen wie `[ 76% von 100% gefüllt]`
