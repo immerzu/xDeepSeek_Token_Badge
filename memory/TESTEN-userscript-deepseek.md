@@ -33,7 +33,7 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-test-drag.mjs` | **Drag-Test (v1.0.7):** zieht das Badge mit der Maus, prüft `left`/`top` + `localStorage`-Eintrag, lädt neu (Position muss bleiben) und macht einen Doppelklick (zurück in die Ecke). Gibt `DRAG:CHECKS` mit fünf Prüfungen aus. |
 | `deepseek-test-tooltip.mjs` | **Tooltip-Test (ab v1.1.1, 12 Prüfungen):** Hover → sichtbar; **Tastendrücke (`a`, `Shift`, `Ctrl`) dürfen ihn nicht ausblenden**; **Mausbewegung auf dem Badge muss ihn ausblenden**; Klick fixiert (überlebt Mausbewegung/-weg/Tastendruck); zweiter Klick löst; kein `title`-Attribut; **keine Zeilenumbrüche** (`TIP:LINES`: logische = gerenderte Zeilen, `wraps` muss 0 sein). Für den Umbruch-Check einen Chat mit Wert öffnen (`DS_URL`). |
 | `deepseek-share-test.mjs` | **Geteilte Chats (v1.1.0):** öffnet eine Share-URL (`DS_URL=https://chat.deepseek.com/share/<id>`), protokolliert **alle** JSON-Antworten (Endpoint, Struktur, Tokenfelder) und liest Badge + Tooltip + Merker. Belegt, dass `/api/v0/share/content` den Tokenstand enthält. |
-| `deepseek-find-chat.mjs` | **Chat im Account finden:** lädt die Chat-Liste (`chat_session/fetch_page`, Bearer-Token), filtert nach `DS_TERMS` (Komma-getrennt), öffnet den Treffer (`DS_PICK`) und prüft Badge + `history_messages` inkl. Reload. So wurde der Original-Chat zum geteilten Chat gefunden. |
+| `deepseek-context-check.mjs` | **Nenner-/Füllstand-Prüfung (v1.1.2):** öffnet einen Chat, liest Badge + Tooltip, schneidet `history_messages` mit (Tokenverlauf, `fragments`-Textmenge, `chat_session`-Felder) und rechnet den Prozentsatz gegen mehrere Limit-Kandidaten. Damit wurde der Fehlschluss „890.880 = Kontextgrenze" entlarvt (Füllstand > 100 %). |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
 
@@ -89,8 +89,10 @@ $env:DS_LIMITS_OUT = "$env:TEMP\ds-limits.json"
 node deepseek-limits.mjs
 ```
 
-Erwartet (Stand 2026-09-10): alle Modelle `token_limit = token_limit_with_thinking = 890880`;
+Erwartet (Stand 2026-09-11): alle Modelle `token_limit = token_limit_with_thinking = 890880`;
 `normal_history_and_file_token_limit = 890880`; `input_character_limit = 2621440`.
+**Achtung:** Diese 890.880 sind **Datei-/History-Limits**, nicht das Kontextfenster — das ist
+**1.000.000** (DeepSeek V4, „1M-Standard"). Siehe Analyse, Abschnitt 10.
 
 ## Ablauf D — App-Code befragen (login-frei)
 

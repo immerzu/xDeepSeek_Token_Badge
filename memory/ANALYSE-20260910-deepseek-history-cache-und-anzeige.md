@@ -67,6 +67,10 @@ Alle 5 Checks grün.
 
 ## 5. Realitätsprüfung der Anzeige (Nutzerfrage, → v1.0.4)
 
+> ⚠️ **Überholt (siehe Abschnitt 10):** Die Schlussfolgerung dieses Abschnitts war falsch. Die
+> 890.880 Token sind ein **Datei-/History-Limit**, **nicht** das Kontextfenster. Das Kontextfenster
+> ist **1.000.000** (DeepSeek V4). Der Abschnitt bleibt als Zeitdokument stehen.
+
 **Der Zähler ist echt:** `accumulated_token_usage` — die App nennt ihn intern
 **`useBranchUsedTokenCount`** und rechnet `getTokenConfig({thinking, modelType}) − verbraucht`
 (`useMaxTokenNewFilesAllowed`, `useIsProcessingTokenCountExceeded`). Keine Schätzung.
@@ -272,13 +276,55 @@ Der Original-Chat wurde über die **Chat-Liste des Accounts** gefunden (`chat_se
 Titelsuche „mallorca") — Werkzeug: `deepseek-find-chat.mjs`. Beide Werte stimmen exakt überein, d. h.
 die Anzeige ist auch im geteilten Kontext korrekt.
 
-## 10. Wichtige Codeanker (für künftige Änderungen)
+## 10. Nachtrag v1.1.2 — Kontextfenster ist **1 Mio.** Token (890.880 war ein Datei-Limit)
+
+**Symptom (Nutzer):** Chat `e26321a7-e48f-473b-8f3b-02938bc0128b` → Badge zeigt
+`📊 945K / 891K (106 %)`. Über 100 % kann nicht sein.
+
+**Messung** (`deepseek-context-check.mjs`, Skript injiziert):
+
+```
+history_messages (REPLACE): 70 Nachrichten, Tokenwerte 39.778 … 945.022, max = 945.022
+Badge:  📊 945K / 891K  (106 %)      →  945.022 / 890.880 = 106,08 %
+        mit 1.000.000 gerechnet:      →  94,50 %
+Zuwächse pro Turn: +2.486 … +31.350 (kein Wachstum mit der Chatlänge!)
+```
+
+**Zwei Erkenntnisse:**
+
+1. **Der Wert ist ein Kontextstand, keine kumulierte Lebenszeit-Summe.** Bei kumulativer Zählung
+   müsste ein Turn in einem 945k-Kontext ~945.000 Token kosten (jeder Turn schickt den ganzen Verlauf
+   erneut). Gemessen wurden aber nur **+2.486 bis +31.350** pro Turn.
+2. **Der Nenner war seit v1.0.4 falsch.** 890.880 stammt aus `model_configs[].file_feature.token_limit`
+   bzw. `normal_history_and_file_token_limit` — das sind **Datei-/History-Limits** (Upload-Grenzen),
+   nicht das Kontextfenster. DeepSeek V4 hat laut offizieller Doku ein Fenster von **1.000.000 Token**:
+   *„Welcome to the era of cost-effective **1M context length** … **1M Standard:** 1M context is now
+   the default across all official DeepSeek services"*
+   (<https://api-docs.deepseek.com/news/news260424/>, V4 Preview Release). Ein 1.048.576 (1 MiB) ist
+   im Client-Code **nicht** zu finden; das Bundle enthält keine Kontextkonstante (die `1e6`-Treffer
+   sind Hash-Zufälle).
+
+**Fix (v1.1.2, Commit `dc38948`):**
+
+- `CONTEXT_WINDOW = 1000000` (`CONTEXT_SOURCE = 'DeepSeek V4 (1M)'`) ersetzt den Settings-Wert als Nenner.
+- Die Settings-Werte werden als `fileLimit` geführt, **nur informativ** im Tooltip gezeigt und
+  ausschließlich dann als Kontextgrenze übernommen, wenn sie **größer** als 1M sind (Zukunftssicherheit).
+- Tooltip-Zeile: `Kontext 1.000.000 · DeepSeek V4 (1M) · Datei-Limit 890.880` (5 Zeilen, kein Umbruch).
+
+**Verifikation:** Badge `📊 945K / 1M  (95 %)`, Tooltip `Exakt: 945.022 von 1.000.000 Token (94,50 %)`;
+alle 12 UI-Checks grün (Umbruch-, Tastendruck-, Pin-Verhalten unverändert).
+
+**Lehre für künftige Änderungen:** Ein von der App gemeldetes „Limit" ist nicht automatisch das
+Kontextfenster. Bevor ein Nenner geändert wird, muss die **Bedeutung** des Feldes belegt sein
+(Doku/Kontext im Code) und die Zahl gegen die Empirie geprüft werden (Füllstand > 100 % = Nenner zu klein).
+
+## 11. Wichtige Codeanker (für künftige Änderungen)
 
 | Zweck | Wert |
 |---|---|
 | Kontextgrenze (Tokenstand) | `accumulated_token_usage` in `data.biz_data.chat_messages[]` |
 | Tokenstand (geteilter Chat) | `accumulated_token_usage` in `data.biz_data.messages[]` — Endpunkt `GET /api/v0/share/content?share_id=…` |
-| Kontextgrenze (Limit) | `data.biz_data.settings.model_configs[].file_feature.token_limit(_with_thinking)` |
+| Kontextgrenze (Limit) | **Kontextfenster 1.000.000** (DeepSeek V4, „1M-Standard"); `model_configs[].file_feature.token_limit(_with_thinking)` und `normal_history_and_file_token_limit` = 890.880 sind nur **Datei-/History-Limits** |
 | Endpunkt History | `GET /api/v0/chat/history_messages?chat_session_id=…[&cache_version=…&cache_reset_at=…]` |
 | Endpunkt Settings | `GET /api/v0/client/settings?did=…&scope=model\|main` |
 | Cache-Steuerung | `biz_data.cache_control`: `REPLACE` (voll) / `MERGE` (Deltas) |
@@ -286,7 +332,7 @@ die Anzeige ist auch im geteilten Kontext korrekt.
 | Netzwerkweg | `XMLHttpRequest` (fetch nur Absicherung) |
 | Merker | `localStorage.xdsTokenBadge.sessionTokens` |
 
-## 11. Umgebungs-Erkenntnisse (wiederverwendbar)
+## 12. Umgebungs-Erkenntnisse (wiederverwendbar)
 
 - **GF-Auto-Sync ist NICHT webhook-basiert:** kein GitHub-Hook im Repo
   (`gh api repos/immerzu/xDeepSeek_Token_Badge/hooks` → leer) → GF zieht periodisch.
@@ -308,7 +354,7 @@ die Anzeige ist auch im geteilten Kontext korrekt.
 - **Meine Fehlspur:** Ein TM-Check über `GM_info` / `script[src*=tampermonkey]` ist untauglich
   (beides existiert so nicht) — er meldete fälschlich „kein TM".
 
-## 12. Offene Punkte
+## 13. Offene Punkte
 
 - [ ] Aktiven **Zweig** statt Maximum zählen (parent_id-Kette + `currentChildIndex`).
 - [ ] **Datei-Tokens** berücksichtigen (App addiert `getFilesTokenCount`).
@@ -317,7 +363,7 @@ die Anzeige ist auch im geteilten Kontext korrekt.
 - [ ] Optional: Wert aus SSE-Deltas (`/api/v0/chat/completion`) mitlesen → live statt nur beim Load.
 - [ ] Optional: GF-Tags (`deepseek`, `token`, `context`, `badge`, `chat`) im GF-UI ergänzen.
 
-## 13. Commits dieser Session
+## 14. Commits dieser Session
 
 | Commit | Inhalt |
 |---|---|
@@ -334,6 +380,8 @@ die Anzeige ist auch im geteilten Kontext korrekt.
 | `22b1cd9` | v1.0.8 — eigener Tooltip statt `title` (überlebt Tastendruck, per Klick fixierbar) |
 | `9568979` | v1.0.9 — Tooltip kompakter (max-width 420 px, gekürzte Statuszeilen) |
 | `c653ee3` | v1.1.0 — geteilte Chats unterstützt (`/api/v0/share/content`) |
+| `dba41f0` | v1.1.1 — Tooltip schließt bei Mausbewegung, Pin-Toggle korrigiert, SPA-Reset |
+| `dc38948` | v1.1.2 — Kontextfenster 1 Mio. (V4) statt Datei-Limit 890.880 → kein Füllstand > 100 % |
 
 Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
 Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:

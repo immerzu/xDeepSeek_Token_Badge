@@ -75,7 +75,8 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   `deepseek-test-drag.mjs` (prüft Verschieben, gemerkte Position und Doppelklick-Reset des Badges),
   `deepseek-test-tooltip.mjs` (prüft, dass der Tooltip Tastendrücke übersteht und per Klick fixiert),
   `deepseek-share-test.mjs` (analysiert Share-Seiten `/share/<id>` samt Tokenstand),
-  `deepseek-find-chat.mjs` (sucht einen Chat per Titel im Account und prüft dort den Zähler).
+  `deepseek-find-chat.mjs` (sucht einen Chat per Titel im Account und prüft dort den Zähler),
+  `deepseek-context-check.mjs` (prüft Nenner/Füllstand: Tokenverlauf, Textmenge, Limit-Kandidaten).
   **Ablauf, Befehle und erwartete Checks: `memory/TESTEN-userscript-deepseek.md`**
 - Skills: `greasy-fork-publish`, `userscript-beschreibungen-immerzu`, `github-immerzu`,
   `playwright-browser`, `tampermonkey-install-update`
