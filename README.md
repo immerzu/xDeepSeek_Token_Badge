@@ -105,6 +105,32 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 
 ---
 
+## Dynamische Kontextgrenze
+
+DeepSeek meldet das Kontextfenster in **keinem** Datenfeld (die Settings enthalten nur Datei-/History-Limits).
+Das Skript verwaltet die Grenze deshalb selbst und passt sie automatisch an:
+
+| Priorität | Quelle | Wie sie entsteht |
+|---|---|---|
+| 1 | **Manuell** | `localStorage.setItem('xdsTokenBadge.limitOverride', '2000000')` → feste Grenze; `removeItem` gibt sie frei |
+| 2 | **Gelernt** | Sobald eine Nachricht den Status `CONTEXT_LENGTH_EXCEEDED` hat, gilt der zuletzt gültige Tokenstand als echte Grenze (funktioniert auch bei Verkleinerung des Fensters) |
+| 3 | **Settings** | Nur wenn die App ein Limit **größer** als 1M meldet (dann ist es offensichtlich das Kontextfenster) |
+| 4 | **Standard** | 1.000.000 Token — DeepSeek V4, offizieller „1M-Standard" |
+
+Zusätzlich merkt sich das Skript den **größten je gesehenen Tokenstand** (`xdsTokenBadge.observedMax`).
+Übersteigt er das angenommene Fenster, wird die Grenze automatisch auf den nächsten 100k-Schritt
+angehoben (untere Schranke), damit die Anzeige nicht dauerhaft über 100 % läuft.
+
+Der Tooltip nennt immer die benutzte Quelle, z. B.
+`Kontext 1.000.000 · DeepSeek V4 (1M) · Datei-Limit 890.880` oder
+`Kontext 2.000.000 · manuell gesetzt (localStorage)`.
+
+**Grenze der Automatik:** Ein Abgleich mit der DeepSeek-Dokumentation findet nicht statt (das Skript
+macht keine externen Requests). Ändert DeepSeek das Fenster, erkennt das Skript das beim ersten
+Erreichen der Grenze — bis dahin gilt die zuletzt gelernte bzw. die Standardgrenze.
+
+---
+
 ## Datenschutz
 
 Das Skript:

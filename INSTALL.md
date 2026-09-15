@@ -111,6 +111,25 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
   stehen, einmal `F5` drücken (dann wird die History neu geladen) und das Skript in Tampermonkey auf
   die neueste Version aktualisieren.
 
+### Der Füllstand wirkt falsch (z. B. über 100 %)
+
+Ab **v1.2.0** verwaltet das Skript die Kontextgrenze selbst: Es lernt sie, sobald DeepSeek eine
+Kontext-Überschreitung meldet, hebt sie an, wenn der Tokenstand das angenommene Fenster übersteigt,
+und nennt die benutzte Quelle im Tooltip („Kontext … · Quelle").
+
+- **Prüfen:** Maus aufs Badge → Zeile `Kontext …` zeigt Wert und Quelle.
+- **Manuell setzen** (falls du das echte Fenster kennst), in der Konsole (`F12`):
+  ```js
+  localStorage.setItem('xdsTokenBadge.limitOverride', '2000000');  // Beispiel: 2 Mio.
+  location.reload();
+  ```
+- **Zurücksetzen:**
+  ```js
+  localStorage.removeItem('xdsTokenBadge.limitOverride');  // wieder automatische Grenze
+  localStorage.removeItem('xdsTokenBadge.limit');          // gelernte Grenze verwerfen
+  localStorage.removeItem('xdsTokenBadge.observedMax');    // Höchstwert verwerfen
+  ```
+
 ---
 
 ## Deinstallation

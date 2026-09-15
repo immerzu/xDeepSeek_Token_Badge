@@ -1,7 +1,7 @@
 {
   "name": "xDeepSeek Token Badge",
   "name_de": "xDeepSeek Token-Anzeige",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.",
   "description_de": "Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.",
   "author": "immerzu",
@@ -30,6 +30,7 @@
   "context_window_size": 1000000,
   "context_window_source": "DeepSeek V4 — offizieller 1M-Standard (https://api-docs.deepseek.com/news/news260424/)",
   "file_history_limit_info": "890880 — Datei-/History-Limit aus den Client-Settings (file_feature.token_limit, normal_history_and_file_token_limit); NICHT das Kontextfenster, nur informativ im Tooltip und nur übernommen, wenn größer als 1M",
+  "context_window_learning": "Priorität: localStorage.xdsTokenBadge.limitOverride (manuell) > xdsTokenBadge.limit (gelernt aus Status CONTEXT_LENGTH_EXCEEDED) > Settings-Limit, nur wenn > 1M > 1.000.000 (V4-Standard). xdsTokenBadge.observedMax merkt den größten Tokenstand; überschreitet er die Grenze, wird sie auf den nächsten 100k-Schritt angehoben.",
   "display_format": "📊 945K / 1M  (95 %) — dreistellig gerundet, exakte Werte im Tooltip",
   "session_token_value": "Maximum der accumulated_token_usage-Werte der Chat-History",
   "hook_targets": [
@@ -79,3 +80,4 @@
     }
   ]
 }
+

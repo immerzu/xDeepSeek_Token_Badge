@@ -7,6 +7,32 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.2.0] — 2026-09-11
+
+### Hinzugefügt
+- **Lernfähige Kontextgrenze** — das Skript passt sich künftigen Änderungen von DeepSeek selbst an.
+  DeepSeek meldet das Kontextfenster in keinem Datenfeld, es gibt aber ein verwertbares Signal:
+  1. **Gelernt (belastbar):** Erreicht eine Nachricht den Server-Status `CONTEXT_LENGTH_EXCEEDED`
+     (den der Client kennt und dann mit „unendlich" rechnet), übernimmt das Skript den zuletzt
+     gültigen Tokenstand als **echte** Grenze. Das greift auch, wenn DeepSeek das Fenster später
+     **verkleinert**.
+  2. **Aus Beobachtung (untere Schranke):** Überschreitet ein Tokenstand das angenommene Fenster,
+     ohne dass eine Überschreitung gemeldet wird, hebt das Skript die Grenze automatisch auf den
+     nächsten 100k-Schritt an — die Anzeige bleibt dadurch plausibel statt dauerhaft >100 %.
+  3. **Manueller Override:** `localStorage.setItem('xdsTokenBadge.limitOverride', '<Zahl>')` setzt die
+     Grenze fest (höchste Priorität), `removeItem` gibt sie wieder frei.
+- **Priorität:** Override → gelernt → Settings (nur wenn > 1M) → V4-Standard (1M).
+  Der Tooltip nennt immer die **Quelle** der Grenze.
+- Gespeicherte Werte: `xdsTokenBadge.limit` (gelernt), `xdsTokenBadge.limitOverride` (manuell),
+  `xdsTokenBadge.observedMax` (größter je gesehener Tokenstand).
+
+### Verifiziert (echter Chat, ohne Reload-Tricks)
+- Standard: `📊 945K / 1M  (95 %)` · Tooltip `Kontext 1.000.000 · DeepSeek V4 (1M) · Datei-Limit 890.880`
+- Override `2000000`: `📊 945K / 2M  (47 %)` · Tooltip `Kontext 2.000.000 · manuell gesetzt (localStorage)`
+- Override entfernt: wieder `📊 945K / 1M  (95 %)` · `observedMax = 945022` wird gelernt
+
+---
+
 ## [1.1.2] — 2026-09-11
 
 ### Behoben

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.1.2
+// @version      1.2.0
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -53,6 +53,10 @@
     const DEBUG              = false;    // true → Konsolen-Logs aktivieren
     const STORE_KEY          = 'xdsTokenBadge.sessionTokens';
     const POS_KEY            = 'xdsTokenBadge.position';
+    // Lernfähige Kontextgrenze: gelerntes Limit, manueller Override, größter beobachteter Stand
+    const LIMIT_KEY          = 'xdsTokenBadge.limit';
+    const OVERRIDE_KEY       = 'xdsTokenBadge.limitOverride';
+    const OBSERVED_KEY       = 'xdsTokenBadge.observedMax';
     const REFETCH_DELAY      = 4000;     // ms Mindestabstand zwischen zwei Nachladungen
     // Nach einer Antwort kann der Server den neuen Tokenstand verzögert fortschreiben.
     // Deshalb mehrere Versuche mit wachsendem Abstand (Summe ≈ 35 s).
@@ -79,6 +83,9 @@
     let contextSize    = CONTEXT_WINDOW;         // Kontextfenster (nicht das Datei-Limit!)
     let contextSource  = CONTEXT_SOURCE;
     let fileLimit      = null;    // Datei-/History-Limit aus den Settings (nur informativ)
+    let learnedLimit   = null;    // gelernte Grenze (aus Beobachtung/Überschreitung)
+    let learnedSource  = '';
+    let observedMax    = 0;       // größter je gesehener Tokenstand
     let modelLimits    = {};      // model_type -> { plain, thinking }
     let globalLimit    = null;    // normal_history_and_file_token_limit
     let currentModel   = null;
@@ -452,6 +459,84 @@
     }
 
     // ---------------------------------------------------------------------
+    // Lernfähige Kontextgrenze
+    // ---------------------------------------------------------------------
+    // DeepSeek meldet das Kontextfenster NICHT als Feld. Es gibt aber ein verwertbares Signal:
+    // erreicht eine Nachricht den Status CONTEXT_LENGTH_EXCEEDED, war das echte Limit erreicht.
+    // Daraus lernt das Skript die Grenze und passt sie bei künftigen Änderungen selbst an.
+    // Priorität: manueller Override > gelernte Grenze > Settings (nur wenn > 1M) > V4-Standard (1M).
+    function readJson(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            return raw === null ? fallback : JSON.parse(raw);
+        } catch (err) { log('read error', key, err); return fallback; }
+    }
+
+    function writeJson(key, value) {
+        try { localStorage.setItem(key, JSON.stringify(value)); }
+        catch (err) { log('write error', key, err); }
+    }
+
+    function loadLearnedLimit() {
+        const stored = readJson(LIMIT_KEY, null);
+        if (stored && Number.isFinite(stored.value) && stored.value > 0) {
+            learnedLimit = stored.value;
+            learnedSource = stored.source || 'gelernt';
+        }
+        const observed = readJson(OBSERVED_KEY, 0);
+        if (Number.isFinite(observed) && observed > 0) observedMax = observed;
+    }
+
+    function overrideLimit() {
+        const v = readJson(OVERRIDE_KEY, null);
+        return Number.isFinite(v) && v > 0 ? v : null;
+    }
+
+    // Wird bei jedem neuen Tokenstand aufgerufen: merkt den Höchstwert und hebt die Grenze an,
+    // wenn der Serverwert das angenommene Fenster überschreitet (Limit also größer ist als gedacht).
+    function noteObserved(tokens) {
+        if (!Number.isFinite(tokens) || tokens <= observedMax) return;
+        observedMax = tokens;
+        writeJson(OBSERVED_KEY, observedMax);
+        log('Höchstwert beobachtet →', observedMax);
+        if (overrideLimit() === null && tokens > contextSize) {
+            const raised = Math.ceil(tokens / 100000) * 100000;   // auf 100k aufrunden
+            learnedLimit = raised;
+            learnedSource = 'aus Beobachtung (untere Schranke)';
+            writeJson(LIMIT_KEY, { value: raised, source: learnedSource, at: Date.now() });
+            log('Grenze angehoben (Beobachtung) →', raised);
+            updateContextSize();
+        }
+    }
+
+    // Kontext-Überschreitung erkannt: der zuletzt gültige Stand ist die belastbare Grenze.
+    function noteContextExceeded(tokens) {
+        const candidate = Number.isFinite(tokens) && tokens > 0 ? tokens : lastValue;
+        if (!Number.isFinite(candidate) || candidate <= 0) return;
+        if (learnedLimit === candidate && learnedSource === 'gelernt (Kontext-Überschreitung)') return;
+        learnedLimit = candidate;
+        learnedSource = 'gelernt (Kontext-Überschreitung)';
+        writeJson(LIMIT_KEY, { value: learnedLimit, source: learnedSource, at: Date.now() });
+        console.warn('[TokenBadge] Kontextgrenze gelernt:', learnedLimit, '(Status CONTEXT_LENGTH_EXCEEDED)');
+        updateContextSize();
+    }
+
+    function checkContextExceeded(json) {
+        try {
+            const biz = bizData(json);
+            const msgs = biz && biz.chat_messages;
+            if (!Array.isArray(msgs)) return;
+            const hit = msgs.find((m) => m && m.status === 'CONTEXT_LENGTH_EXCEEDED');
+            if (!hit) return;
+            const vals = msgs.map((m) => m && m.accumulated_token_usage).filter((v) => typeof v === 'number' && Number.isFinite(v));
+            noteContextExceeded(vals.length ? Math.max.apply(null, vals) : null);
+        } catch (err) { log('exceeded check error', err); }
+    }
+
+    loadLearnedLimit();
+    updateContextSize();
+
+    // ---------------------------------------------------------------------
     // Extraktion des Token-Werts aus der API-Antwort
     // ---------------------------------------------------------------------
     // Sucht rekursiv nach "accumulated_token_usage" und nimmt das Maximum.
@@ -531,19 +616,30 @@
         const finite = candidates.filter((v) => Number.isFinite(v) && v > 0);
         fileLimit = finite.length ? Math.max.apply(null, finite) : null;
 
+        // Priorität: Override > gelernt > Settings (nur wenn > 1M) > V4-Standard (1M)
+        const override = overrideLimit();
         let next = CONTEXT_WINDOW;
         let source = CONTEXT_SOURCE;
         if (fileLimit !== null && fileLimit > CONTEXT_WINDOW) {
             next = fileLimit;
             source = 'DeepSeek-Settings (größer als 1M)';
         }
+        if (learnedLimit !== null && learnedLimit > 0) {
+            next = learnedLimit;
+            source = learnedSource || 'gelernt';
+        }
+        if (override !== null) {
+            next = override;
+            source = 'manuell gesetzt (localStorage)';
+        }
+
         if (next === contextSize) {
             contextSource = source;
             return;
         }
         contextSize = next;
         contextSource = source;
-        log('Kontextfenster →', contextSize, contextSource, 'Datei-Limit:', fileLimit);
+        log('Kontextfenster →', contextSize, contextSource, 'Datei-Limit:', fileLimit, 'Höchstwert:', observedMax);
         if (lastValue !== null) renderValue(lastValue, lastStale);
     }
 
@@ -615,6 +711,7 @@
     function handle(tokens, sessionId) {
         handleSession(sessionId);
         if (!Number.isFinite(tokens)) return;
+        noteObserved(tokens);
         if (tokens === lastValue && !lastStale) return;
         lastValue = tokens;
         remember(currentSession, tokens);
@@ -809,6 +906,7 @@
                                 return;
                             }
                             noteSession(json);
+                            checkContextExceeded(json);
                             const biz = bizData(json);
                             const sessionId = (biz && biz.chat_session && biz.chat_session.id) || fromUrl;
                             const tokens = extractTokenUsage(json);
@@ -897,6 +995,7 @@
                         return;
                     }
                     noteSession(json);
+                    checkContextExceeded(json);
                     const biz = bizData(json);
                     const sessionId = (biz && biz.chat_session && biz.chat_session.id) || sessionIdFromUrl(url);
                     const tokens = extractTokenUsage(json);
@@ -915,5 +1014,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.1.2 geladen.');
+    log('xDeepSeek Token Badge v1.2.0 geladen.');
 })();
