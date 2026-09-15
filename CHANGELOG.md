@@ -7,6 +7,31 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.2.1] — 2026-09-11
+
+### Hinzugefügt
+- **Erkennt den vollen Chat.** Ist das **Nachrichtenlimit** erreicht, lehnt DeepSeek das Senden ab — der
+  Server meldet den Fehlercode **`MAX_MESSAGE_COUNT_REACHED`**, die App zeigt den Hinweis
+  „Nachrichtenlimit erreicht. Bitte starten Sie einen neuen Chat." (EN: „Message limit reached.
+  Please start a new chat.", ZH: „消息数量达到上限，请开启新对话"). Das Skript erkennt **beides** —
+  den Fehlercode in der Antwort und den Hinweistext in der Oberfläche — und zeigt es an:
+  Badge mit **⚠**-Präfix, im Tooltip die Zeile `⚠ DeepSeek meldet: …`. Der Zustand wird pro Chat
+  gemerkt (`xdsTokenBadge.fullSessions`) und beim Chat-Wechsel geladen.
+- **Wichtig zur Einordnung:** Das ist ein **Nachrichten-Anzahl-Limit** und unabhängig von der Tokenzahl.
+  Die Kontextgrenze wird dabei bewusst **nicht** verändert.
+
+### Behoben (beim Testen gefunden)
+- Der Beobachter erkannte anfangs seinen **eigenen Tooltip** als Hinweis (der zeigt die Meldung ja an) →
+  Rückkopplung und falsch gemerkter Text. Eigene Elemente (`#deepseek-token-badge`, `…-tip`) werden
+  jetzt ausgeschlossen und es wird nur der **Treffer** gespeichert.
+
+### Verifiziert (echter Chat, Hinweis simuliert)
+Heute im Chat `460a35e7…` (966.769 Token = 97 %): Badge `📊 ⚠ 967K / 1M  (97 %)` ·
+Tooltip `⚠ DeepSeek meldet: Nachrichtenlimit erreicht` · Zustand in `localStorage` · nach Bereinigung
+wieder normal — 5/5 Checks grün.
+
+---
+
 ## [1.2.0] — 2026-09-11
 
 ### Hinzugefügt

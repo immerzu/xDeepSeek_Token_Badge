@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.2.0
+// @version      1.2.1
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -57,6 +57,10 @@
     const LIMIT_KEY          = 'xdsTokenBadge.limit';
     const OVERRIDE_KEY       = 'xdsTokenBadge.limitOverride';
     const OBSERVED_KEY       = 'xdsTokenBadge.observedMax';
+    // DeepSeek meldet einen vollen Chat über den Server-Fehlercode MAX_MESSAGE_COUNT_REACHED
+    // ("hintMaxMessageCount" → DE: "Nachrichtenlimit erreicht. Bitte starten Sie einen neuen Chat.")
+    const FULL_KEY           = 'xdsTokenBadge.fullSessions';
+    const CHAT_FULL_RE       = /(Nachrichtenlimit\s+erreicht|Message\s+limit\s+reached|MAX_MESSAGE_COUNT_REACHED|消息数量达到上限)/i;
     const REFETCH_DELAY      = 4000;     // ms Mindestabstand zwischen zwei Nachladungen
     // Nach einer Antwort kann der Server den neuen Tokenstand verzögert fortschreiben.
     // Deshalb mehrere Versuche mit wachsendem Abstand (Summe ≈ 35 s).
@@ -86,6 +90,7 @@
     let learnedLimit   = null;    // gelernte Grenze (aus Beobachtung/Überschreitung)
     let learnedSource  = '';
     let observedMax    = 0;       // größter je gesehener Tokenstand
+    let chatFull       = null;    // { at, text } wenn DeepSeek den Chat als voll gemeldet hat
     let modelLimits    = {};      // model_type -> { plain, thinking }
     let globalLimit    = null;    // normal_history_and_file_token_limit
     let currentModel   = null;
@@ -409,7 +414,8 @@
         }
         const rawPct = tokens / contextSize * 100;
         const pct = rawPct > 0 && rawPct < 1 ? '<1' : String(Math.round(rawPct));
-        el.textContent = `📊 ${stale ? '~' : ''}${formatTokens(tokens)} / ${formatTokens(contextSize)}  (${pct} %)`;
+        const warn = chatFull ? '⚠ ' : '';
+        el.textContent = `📊 ${warn}${stale ? '~' : ''}${formatTokens(tokens)} / ${formatTokens(contextSize)}  (${pct} %)`;
         setTip([
             isShareView()
                 ? 'Geteilte Unterhaltung — Stand zum Zeitpunkt des Teilens'
@@ -418,6 +424,7 @@
                     : 'Aktueller Wert aus der Server-Antwort'),
             `Exakt: ${tokens.toLocaleString()} von ${contextSize.toLocaleString()} Token (${rawPct.toFixed(2).replace('.', ',')} %)`,
             `Kontext ${contextSize.toLocaleString()} · ${contextSource}${fileLimit && fileLimit !== contextSize ? ` · Datei-Limit ${fileLimit.toLocaleString()}` : ''}`,
+            ...(chatFull ? [`⚠ DeepSeek meldet: ${chatFull.text}`] : []),
             ...(isShareView() ? [] : [`Nachladen: ${refreshInfo}`]),
             'Klick fixiert · Doppelklick setzt Position zurück'
         ]);
@@ -533,8 +540,69 @@
         } catch (err) { log('exceeded check error', err); }
     }
 
+    // Chat voll (Nachrichtenlimit): DeepSeek lehnt das Senden ab. Das ist UNABHÄNGIG von der
+    // Tokenzahl — die Token-Grenze wird hier bewusst NICHT verändert.
+    function loadChatFull(sessionId) {
+        if (!sessionId) return null;
+        const store = readJson(FULL_KEY, {});
+        return store && store[sessionId] ? store[sessionId] : null;
+    }
+
+    function noteChatFull(text, sessionId) {
+        const sid = sessionId || currentSession;
+        if (!sid) return;
+        const entry = { at: Date.now(), text: String(text || '').replace(/\s+/g, ' ').trim().slice(0, 160) };
+        if (chatFull && chatFull.text === entry.text) return;      // schon gemeldet
+        chatFull = entry;
+        const store = readJson(FULL_KEY, {});
+        store[sid] = entry;
+        const keys = Object.keys(store);
+        if (keys.length > 50) for (const k of keys.slice(0, keys.length - 50)) delete store[k];
+        writeJson(FULL_KEY, store);
+        console.warn('[TokenBadge] Chat voll gemeldet:', entry.text);
+        renderValue(lastValue, lastStale);
+    }
+
+    // Sucht in einem Antworttext nach dem Fehlercode/Hinweis.
+    function checkChatFullText(text) {
+        try {
+            if (typeof text !== 'string' || !text) return false;
+            const m = text.match(CHAT_FULL_RE);
+            if (!m) return false;
+            noteChatFull(m[0]);
+            return true;
+        } catch (err) { log('full check error', err); return false; }
+    }
+    // Fallback: Der Hinweis erscheint auch als Text im Eingabebereich (falls der Code nicht sichtbar ist).
+    function watchChatFullNotice() {
+        const start = () => {
+            try {
+                const obs = new MutationObserver((muts) => {
+                    for (const m of muts) {
+                        for (const n of m.addedNodes) {
+                            const el = n.nodeType === 1 ? n : n.parentElement;
+                            if (!el) continue;
+                            // Eigene Elemente nie auswerten — sonst erkennt sich der Tooltip selbst
+                            // (er zeigt die Meldung ja an) und überschreibt den gemerkten Text.
+                            if (el.closest && el.closest('#deepseek-token-badge, #deepseek-token-badge-tip')) continue;
+                            const txt = (el.textContent || '').slice(0, 300);
+                            if (!txt) continue;
+                            const hit = txt.match(CHAT_FULL_RE);
+                            if (hit) noteChatFull(hit[0]);      // nur den Treffer speichern
+                        }
+                    }
+                });
+                obs.observe(document.body || document.documentElement, { childList: true, subtree: true });
+                log('Chat-voll-Beobachter aktiv');
+            } catch (err) { log('watch full error', err); }
+        };
+        if (document.body) start();
+        else document.addEventListener('DOMContentLoaded', start, { once: true });
+    }
+
     loadLearnedLimit();
     updateContextSize();
+    watchChatFullNotice();
 
     // ---------------------------------------------------------------------
     // Extraktion des Token-Werts aus der API-Antwort
@@ -699,6 +767,7 @@
         currentSession = sessionId;
         lastValue = null;
         const known = recall(sessionId);
+        chatFull = loadChatFull(sessionId);
         if (known !== null) {
             lastValue = known;
             renderValue(known, true);
@@ -968,6 +1037,8 @@
                 this.addEventListener('load', function () {
                     try {
                         const sid = sessionIdFromBody(body) || sessionFromLocation() || currentSession;
+                        // Ablehnung wegen vollem Chat (Nachrichtenlimit) erkennen
+                        checkChatFullText(this.responseText);
                         log('Antwort-Stream beendet → History nachladen', sid);
                         refreshAfterAnswer(sid, self.__tokenbadge_headers);
                     } catch (err) { log('completion hook error', err); }
@@ -1014,5 +1085,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.2.0 geladen.');
+    log('xDeepSeek Token Badge v1.2.1 geladen.');
 })();

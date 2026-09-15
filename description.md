@@ -20,6 +20,7 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 - Detailanzeige — Tooltip mit exaktem Wert, Kontextgrenze und Nachlade-Status; er bleibt beim Drücken von Tasten stehen (screenshot-freundlich), verschwindet bei Mausbewegung und lässt sich per Klick fixieren
 - Auch in geteilten Chats — bei `chat.deepseek.com/share/…` wird der Füllstand des geteilten Verlaufs angezeigt (Stand zum Zeitpunkt des Teilens)
 - Lernfähige Grenze — erkennt eine Kontext-Überschreitung (`CONTEXT_LENGTH_EXCEEDED`) und passt den Nenner automatisch an; manuell überschreibbar über `localStorage.xdsTokenBadge.limitOverride`
+- Voller Chat wird markiert — meldet DeepSeek „Nachrichtenlimit erreicht", zeigt das Badge ein ⚠ und der Tooltip den Hinweis
 - Reload-fest — merkt sich den letzten Wert je Chat (mit `~` markiert, bis der Serverwert kommt)
 
 **Bedienung**
@@ -66,6 +67,7 @@ DeepSeek отбрасывает самые старые части перепи�
 - Подробная информация — подсказка с точным значением, границей контекста и статусом обновления; не исчезает при нажатии клавиш (удобно для скриншотов), скрывается при движении мыши и фиксируется щелчком
 - Также в общих чатах — для `chat.deepseek.com/share/…` показывается заполнение опубликованного диалога (на момент публикации)
 - Обучаемая граница — распознаёт превышение контекста (`CONTEXT_LENGTH_EXCEEDED`) и автоматически подстраивает знаменатель; можно переопределить вручную через `localStorage.xdsTokenBadge.limitOverride`
+- Полный чат помечается — если DeepSeek сообщает «достигнут предел сообщений», значок показывает ⚠, а подсказка — текст сообщения
 - Устойчивость к перезагрузке — последнее значение по каждому чату запоминается (помечается `~`, пока не придёт значение с сервера)
 
 **Управление**
@@ -112,6 +114,7 @@ That way you can see at a glance when it is time to start a new chat.
 - Details on demand — tooltip with the exact value, context limit and refresh status; it stays visible while you press keys (screenshot-friendly), hides on mouse movement and can be pinned by clicking
 - Shared chats too — on `chat.deepseek.com/share/…` it shows the fill level of the shared conversation (as of the time it was shared)
 - Self-adjusting limit — detects a context overflow (`CONTEXT_LENGTH_EXCEEDED`) and adapts the denominator automatically; can be overridden manually via `localStorage.xdsTokenBadge.limitOverride`
+- Full chat is flagged — when DeepSeek reports "message limit reached", the badge shows ⚠ and the tooltip shows the notice
 - Reload-proof — remembers the last value per chat (marked `~` until the server value arrives)
 
 **Usage**

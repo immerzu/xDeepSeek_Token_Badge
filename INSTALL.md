@@ -111,6 +111,16 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
   stehen, einmal `F5` drücken (dann wird die History neu geladen) und das Skript in Tampermonkey auf
   die neueste Version aktualisieren.
 
+### Meldung „Nachrichtenlimit erreicht" und ein ⚠ am Badge
+
+- Das bedeutet: DeepSeek lehnt weitere Nachrichten in **diesem** Chat ab (Server-Fehlercode
+  `MAX_MESSAGE_COUNT_REACHED`). Ab **v1.2.1** erkennt das Skript das und zeigt es an
+  (Badge `⚠`, Tooltip `⚠ DeepSeek meldet: …`).
+- **Lösung:** einen **neuen Chat** starten. Das Nachrichtenlimit hat nichts mit der Tokenzahl zu tun —
+  der Füllstand kann dabei niedrig oder hoch sein.
+- Den Merker zurücksetzen (z. B. nachdem du im Chat aufgeräumt hast):
+  `localStorage.removeItem('xdsTokenBadge.fullSessions')` in der Konsole (`F12`).
+
 ### Der Füllstand wirkt falsch (z. B. über 100 %)
 
 Ab **v1.2.0** verwaltet das Skript die Kontextgrenze selbst: Es lernt sie, sobald DeepSeek eine

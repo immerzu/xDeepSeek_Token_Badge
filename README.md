@@ -105,6 +105,22 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 
 ---
 
+## Voller Chat (`⚠`)
+
+Ist das **Nachrichtenlimit** erreicht, lehnt DeepSeek das Senden ab (`MAX_MESSAGE_COUNT_REACHED`,
+Anzeige: „Nachrichtenlimit erreicht. Bitte starten Sie einen neuen Chat."). Das Skript erkennt den
+Fehlercode **und** den Hinweistext und zeigt:
+
+- Badge: `📊 ⚠ 967K / 1M  (97 %)`
+- Tooltip: `⚠ DeepSeek meldet: Nachrichtenlimit erreicht`
+
+Der Zustand wird pro Chat gemerkt (`xdsTokenBadge.fullSessions`); ein neuer Chat startet ohne Warnung.
+
+**Wichtig:** Das Nachrichtenlimit ist **unabhängig** von der Tokenzahl. Deshalb ändert es die
+Kontextgrenze nicht — ein Chat kann bei 97 % Tokens voll sein oder bei 40 %, je nach Nachrichtenanzahl.
+
+---
+
 ## Dynamische Kontextgrenze
 
 DeepSeek meldet das Kontextfenster in **keinem** Datenfeld (die Settings enthalten nur Datei-/History-Limits).
