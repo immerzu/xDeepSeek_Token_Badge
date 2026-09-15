@@ -7,6 +7,31 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.1.2] — 2026-09-11
+
+### Behoben
+- **Der Füllstand konnte über 100 % steigen** (gemeldet für Chat `e26321a7…`: `945K / 891K (106 %)`).
+  Ursache: Seit v1.0.4 nutzte das Skript **890.880 Token** als Kontextgrenze — dieser Wert ist aber
+  das **Datei-/History-Limit** der App (`model_configs[].file_feature.token_limit` bzw.
+  `normal_history_and_file_token_limit`), **nicht** das Kontextfenster.
+  DeepSeek V4 hat laut offizieller Doku ein Kontextfenster von **1.000.000 Token**
+  („1M Standard: 1M context is now the default across all official DeepSeek services",
+  <https://api-docs.deepseek.com/news/news260424/>).
+- **Nachweis am betroffenen Chat:** 70 Nachrichten, Serverwert **945.022 Token** → **94,50 %** von 1M
+  (statt 106 % von 890.880). Zusätzlich zeigen die Zuwächse pro Turn (2.486–4.946 Token), dass der
+  Serverwert ein **Kontextstand** ist und keine kumulierte Lebenszeit-Summe (die bei kumulativer
+  Zählung ~945.000 pro Turn betragen müsste).
+- Das Skript rechnet jetzt gegen **1.000.000**; das Datei-/History-Limit (890.880) steht informativ
+  im Tooltip und wird nur übernommen, wenn es größer als das Kontextfenster ist (Zukunftssicherheit).
+
+### Verifiziert
+- Badge im betroffenen Chat: **`📊 945K / 1M  (95 %)`**
+- Tooltip (5 Zeilen, kein Umbruch):
+  `Exakt: 945.022 von 1.000.000 Token (94,50 %)` ·
+  `Kontext 1.000.000 · DeepSeek V4 (1M) · Datei-Limit 890.880`
+
+---
+
 ## [1.1.1] — 2026-09-11
 
 ### Behoben

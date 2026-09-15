@@ -104,8 +104,13 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   (`--hide-crash-restore-bubble`, `--no-first-run`, `--no-default-browser-check`) plus
   `resetProfileCrashFlag()` vor jedem Start (von `launchBrowser()` und allen `deepseek-*.mjs`
   aufgerufen). Neue Launcher müssen `args: BASE_ARGS` setzen.
-- **Kontextgrenze nicht raten:** Sie kommt aus `/api/v0/client/settings?scope=model|main`
-  (`model_configs[].file_feature.token_limit(_with_thinking)`, derzeit **890.880**; nicht 1 Mio.).
+- **Kontextfenster ist 1 Mio. Token — NICHT 890.880:** DeepSeek V4 hat laut offizieller Doku
+  (<https://api-docs.deepseek.com/news/news260424/>, „1M Standard: 1M context is now the default")
+  ein Fenster von 1.000.000 Token. Die Client-Settings
+  (`model_configs[].file_feature.token_limit`, `normal_history_and_file_token_limit`) melden dagegen
+  nur ein **Datei-/History-Limit** (890.880) — wer das als Kontextgrenze einsetzt, bekommt Füllstände
+  über 100 % (so passiert in v1.0.4–v1.1.1, korrigiert in v1.1.2). Der Wert steht nur informativ im
+  Tooltip und wird nur übernommen, wenn er größer als 1M ist.
 - **Badge-Bedienung (seit v1.0.7):** Das Badge hat `pointer-events: auto` (vorher `none`) und ist per
   Pointer-Events **verschiebbar**; die Position liegt in `localStorage` (`xdsTokenBadge.position`),
   Doppelklick setzt in die Standardecke zurück. Wer Interaktionslogik ändert, muss beachten, dass das

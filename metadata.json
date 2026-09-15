@@ -27,9 +27,10 @@
   ],
   "language": "de",
   "script_type": "public",
-  "context_window_size_source": "model_configs[].file_feature.token_limit / token_limit_with_thinking (scope=model), sonst normal_history_and_file_token_limit (scope=main)",
-  "context_window_size_fallback": 890880,
-  "display_format": "📊 192K / 891K  (22 %) — dreistellig gerundet, exakte Werte im Tooltip",
+  "context_window_size": 1000000,
+  "context_window_source": "DeepSeek V4 — offizieller 1M-Standard (https://api-docs.deepseek.com/news/news260424/)",
+  "file_history_limit_info": "890880 — Datei-/History-Limit aus den Client-Settings (file_feature.token_limit, normal_history_and_file_token_limit); NICHT das Kontextfenster, nur informativ im Tooltip und nur übernommen, wenn größer als 1M",
+  "display_format": "📊 945K / 1M  (95 %) — dreistellig gerundet, exakte Werte im Tooltip",
   "session_token_value": "Maximum der accumulated_token_usage-Werte der Chat-History",
   "hook_targets": [
     "XMLHttpRequest.prototype.open",

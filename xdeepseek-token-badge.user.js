@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.1.1
+// @version      1.1.2
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -44,8 +44,12 @@
     const SETTINGS_FRAGMENT  = '/client/settings';
     const COMPLETION_FRAGMENT = '/chat/completion';   // SSE-Antwortstrom
     const SHARE_FRAGMENT     = '/share/content';      // geteilte Unterhaltung
-    // Rückfallwert, falls die App keine Grenze meldet (Stand 2026-09-10: alle Modelle 890.880).
-    const DEFAULT_CONTEXT_SIZE = 890880;
+    // Kontextfenster des Modells. DeepSeek V4 hat laut offizieller Doku („1M Standard",
+    // https://api-docs.deepseek.com/news/news260424/) ein Fenster von einer Million Token.
+    // ACHTUNG: Die Client-Settings melden mit 890.880 nur ein DATEI-/HISTORY-Limit — das ist
+    // NICHT das Kontextfenster und darf den Prozentsatz nicht bestimmen (führte zu >100 %).
+    const CONTEXT_WINDOW = 1000000;
+    const CONTEXT_SOURCE = 'DeepSeek V4 (1M)';
     const DEBUG              = false;    // true → Konsolen-Logs aktivieren
     const STORE_KEY          = 'xdsTokenBadge.sessionTokens';
     const POS_KEY            = 'xdsTokenBadge.position';
@@ -72,8 +76,9 @@
     let lastMsgCount   = null;
     let refreshInfo    = 'noch keins nach einer Antwort';
     let refreshSeq     = 0;
-    let contextSize    = DEFAULT_CONTEXT_SIZE;   // wird aus den Settings aktualisiert
-    let contextSource  = 'Rückfallwert';
+    let contextSize    = CONTEXT_WINDOW;         // Kontextfenster (nicht das Datei-Limit!)
+    let contextSource  = CONTEXT_SOURCE;
+    let fileLimit      = null;    // Datei-/History-Limit aus den Settings (nur informativ)
     let modelLimits    = {};      // model_type -> { plain, thinking }
     let globalLimit    = null;    // normal_history_and_file_token_limit
     let currentModel   = null;
@@ -405,7 +410,7 @@
                     ? 'Letzter bekannter Wert für diesen Chat (Server lieferte nur ein Delta)'
                     : 'Aktueller Wert aus der Server-Antwort'),
             `Exakt: ${tokens.toLocaleString()} von ${contextSize.toLocaleString()} Token (${rawPct.toFixed(2).replace('.', ',')} %)`,
-            `Kontextgrenze: ${contextSize.toLocaleString()} Token (${contextSource})`,
+            `Kontext ${contextSize.toLocaleString()} · ${contextSource}${fileLimit && fileLimit !== contextSize ? ` · Datei-Limit ${fileLimit.toLocaleString()}` : ''}`,
             ...(isShareView() ? [] : [`Nachladen: ${refreshInfo}`]),
             'Klick fixiert · Doppelklick setzt Position zurück'
         ]);
@@ -509,42 +514,36 @@
         return value && typeof value === 'object' && 'value' in value ? value.value : value;
     }
 
+    // Die Client-Settings melden Datei-/History-Limits (890.880). Das ist NICHT das Kontextfenster
+    // (V4 = 1 Mio.). Wir merken den Wert nur für den Tooltip — und übernehmen ihn ausschließlich
+    // dann als Kontextgrenze, wenn er GRÖSSER als das bekannte Kontextfenster ist.
     function updateContextSize() {
-        let next = null;
-        let source = '';
+        const candidates = [];
         const model = currentModel && modelLimits[currentModel] ? modelLimits[currentModel] : null;
-
         if (model) {
-            if (currentThinking !== false && Number.isFinite(model.thinking)) {
-                next = model.thinking;
-                source = `Modell ${currentModel}${currentThinking === true ? ' mit Denken' : ''}`;
-            } else if (Number.isFinite(model.plain)) {
-                next = model.plain;
-                source = `Modell ${currentModel}`;
-            }
+            candidates.push(model.thinking, model.plain);
         }
-        if (!Number.isFinite(next)) {
-            const all = Object.keys(modelLimits)
-                .reduce((acc, k) => acc.concat([modelLimits[k].plain, modelLimits[k].thinking]), [])
-                .filter((v) => Number.isFinite(v));
-            if (all.length) {
-                next = Math.max.apply(null, all);
-                source = 'größtes Modell-Limit';
-            }
+        for (const k of Object.keys(modelLimits)) {
+            candidates.push(modelLimits[k].plain, modelLimits[k].thinking);
         }
-        if (!Number.isFinite(next) && Number.isFinite(globalLimit)) {
-            next = globalLimit;
-            source = 'History-/Datei-Limit';
-        }
-        if (!Number.isFinite(next) || next <= 0) return;
+        candidates.push(globalLimit);
 
+        const finite = candidates.filter((v) => Number.isFinite(v) && v > 0);
+        fileLimit = finite.length ? Math.max.apply(null, finite) : null;
+
+        let next = CONTEXT_WINDOW;
+        let source = CONTEXT_SOURCE;
+        if (fileLimit !== null && fileLimit > CONTEXT_WINDOW) {
+            next = fileLimit;
+            source = 'DeepSeek-Settings (größer als 1M)';
+        }
         if (next === contextSize) {
-            if (source) contextSource = source;
+            contextSource = source;
             return;
         }
         contextSize = next;
-        contextSource = source || 'DeepSeek-Settings';
-        log('Kontextgrenze →', contextSize, contextSource);
+        contextSource = source;
+        log('Kontextfenster →', contextSize, contextSource, 'Datei-Limit:', fileLimit);
         if (lastValue !== null) renderValue(lastValue, lastStale);
     }
 
@@ -916,5 +915,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.1.1 geladen.');
+    log('xDeepSeek Token Badge v1.1.2 geladen.');
 })();

@@ -1,6 +1,6 @@
 Zeigt den aktuellen Kontext-Füllstand des DeepSeek-Chats als schwebendes Badge an — kompakt, live und ohne Server.
 
-DeepSeek schneidet die ältesten Teile der Konversation ab, sobald der Kontext voll ist: Der Chat „vergisst" frühere Details, ohne dass man es merkt. DeepSeek zeigt nirgends an, wie voll der Kontext gerade ist — die Grenze (derzeit 890.880 Token) liest dieses Skript direkt aus den DeepSeek-Einstellungen.
+DeepSeek schneidet die ältesten Teile der Konversation ab, sobald der Kontext voll ist: Der Chat „vergisst" frühere Details, ohne dass man es merkt. DeepSeek zeigt nirgends an, wie voll der Kontext gerade ist — das Skript rechnet gegen das Kontextfenster von **1.000.000 Token** (DeepSeek V4, offizieller „1M-Standard").
 
 Es liest die ohnehin übertragene `accumulated_token_usage` aus den Chat-History-Antworten und zeigt sie als Badge unten rechts an:
 
@@ -13,7 +13,7 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 **Features**
 
 - Live-Anzeige — dreistellig gerundete Token (`406K`, `891K`) plus Prozent, exakte Werte im Tooltip
-- Korrekte Grenze — der Nenner kommt aus den DeepSeek-Einstellungen, nicht aus einer Annahme
+- Passende Grenze — gerechnet wird gegen das V4-Kontextfenster (1 Mio. Token); das Datei-/History-Limit der App (890.880) steht zusätzlich im Tooltip
 - Null Konfiguration — installieren und vergessen
 - 100 % lokal — kein Server, keine externen Aufrufe, kein Tracking
 - Verschiebbar — das Badge lässt sich mit der Maus an jede Stelle ziehen; die Position bleibt erhalten, Doppelklick setzt es zurück
@@ -45,7 +45,7 @@ Das Skript sendet keine Daten irgendwohin. Es liest ausschließlich die API-Antw
 
 Показывает текущий уровень заполнения контекстного окна в веб-чате DeepSeek в виде плавающего значка — компактно, в реальном времени и без сервера.
 
-DeepSeek отбрасывает самые старые части переписки, когда контекст заполнен: чат «забывает» прежние детали, и это происходит незаметно. При этом DeepSeek нигде не показывает, насколько контекст уже заполнен — границу (сейчас 890 880 токенов) скрипт читает прямо из настроек DeepSeek.
+DeepSeek отбрасывает самые старые части переписки, когда контекст заполнен: чат «забывает» прежние детали, и это происходит незаметно. При этом DeepSeek нигде не показывает, насколько контекст уже заполнен — скрипт считает от контекстного окна **1 000 000 токенов** (DeepSeek V4, официальный стандарт 1M).
 
 Скрипт читает поле `accumulated_token_usage`, которое и так передаётся в ответах истории чата, и показывает его в виде значка в правом нижнем углу:
 
@@ -58,7 +58,7 @@ DeepSeek отбрасывает самые старые части перепи�
 **Возможности**
 
 - Показ в реальном времени — токены, округлённые до трёх знаков (`406K`, `891K`), и проценты; точные значения в подсказке
-- Верная граница — знаменатель берётся из настроек DeepSeek, а не из предположения
+- Подходящая граница — расчёт идёт от контекстного окна V4 (1 млн токенов); лимит файлов/истории приложения (890 880) дополнительно показан в подсказке
 - Без настройки — установить и забыть
 - 100 % локально — без сервера, без внешних запросов, без отслеживания
 - Перетаскивание — значок можно перетащить мышью в любое место; положение сохраняется, двойной щелчок возвращает его назад
@@ -90,7 +90,7 @@ DeepSeek отбрасывает самые старые части перепи�
 
 Shows the current context window usage of the DeepSeek web chat as a floating badge — compact, live and serverless.
 
-DeepSeek truncates the oldest parts of the conversation once the context is full: the chat "forgets" earlier details without you noticing. DeepSeek never shows how full the context currently is — the limit (currently 890,880 tokens) is read straight from DeepSeek's own settings by this script.
+DeepSeek truncates the oldest parts of the conversation once the context is full: the chat "forgets" earlier details without you noticing. DeepSeek never shows how full the context currently is — the script measures against the **1,000,000-token** context window (DeepSeek V4, official 1M standard).
 
 This script reads the `accumulated_token_usage` field that is transmitted anyway in the chat history responses and displays it as a badge in the bottom right corner:
 
@@ -103,7 +103,7 @@ That way you can see at a glance when it is time to start a new chat.
 **Features**
 
 - Live display — tokens rounded to three digits (`406K`, `891K`) plus percent, exact values in the tooltip
-- Correct limit — the denominator comes from DeepSeek's settings, not from an assumption
+- Matching limit — it measures against the V4 context window (1M tokens); the app's file/history limit (890,880) is shown in the tooltip as well
 - Zero configuration — install and forget
 - 100 % local — no server, no external calls, no tracking
 - Draggable — the badge can be dragged anywhere with the mouse; the position is remembered, a double-click moves it back

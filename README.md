@@ -11,7 +11,7 @@ Ein Tampermonkey-Userscript, das den aktuellen **Kontext-Füllstand** des DeepSe
 
 ## Was macht dieses Skript?
 
-DeepSeek schneidet den ältesten Teil der Konversation ab, sobald der Kontext voll ist — der Chat „vergisst" frühere Details. Das Problem: DeepSeek zeigt nirgendwo an, **wie voll** das Fenster gerade ist. Die Grenze liest dieses Skript direkt aus den DeepSeek-Einstellungen (derzeit **890.880 Token**) statt sie anzunehmen.
+DeepSeek schneidet den ältesten Teil der Konversation ab, sobald der Kontext voll ist — der Chat „vergisst" frühere Details. Das Problem: DeepSeek zeigt nirgendwo an, **wie voll** das Fenster gerade ist. Das Skript rechnet deshalb gegen das **Kontextfenster von 1.000.000 Token** (DeepSeek V4, offizieller „1M-Standard").
 
 Dieses Skript fängt die API-Antworten des DeepSeek-Web-Chats ab, liest das Feld `accumulated_token_usage` daraus und zeigt es als kleines Badge unten rechts an:
 
@@ -28,7 +28,7 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 ## Features
 
 - 🎯 **Live-Anzeige** des aktuellen Token-Füllstands (dreistellig gerundet + Prozent, exakt im Tooltip)
-- 📐 **Korrekte Grenze** — der Nenner kommt aus den DeepSeek-Einstellungen, nicht aus einer Annahme
+- 📐 **Passende Grenze** — gerechnet wird gegen das V4-Kontextfenster (1 Mio. Token); das Datei-/History-Limit der App (890.880) zeigt der Tooltip zusätzlich
 - 🚀 **Null Konfiguration** — installieren, fertig
 - 🔒 **Lokal & sicher** — kein Server, keine externen Aufrufe, kein Tracking
 - 🖱️ **Verschiebbar** — mit der Maus an jede Stelle ziehen; Position bleibt erhalten, Doppelklick setzt das Badge zurück
@@ -76,7 +76,7 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 - **Ziel-Endpunkte:** `*/chat/history_messages` (Tokenstand), `*/client/settings` (Kontextgrenze), `*/chat/completion` (Ende des Antwort-Streams → Nachladen auslösen), `*/share/content` (geteilte Unterhaltung)
 - **Ausgelesenes Feld:** `data.biz_data.chat_messages[].accumulated_token_usage` (in der Share-Ansicht `data.biz_data.messages[].accumulated_token_usage`)
 - **Angezeigter Wert:** Maximum der `accumulated_token_usage`-Werte; bei `cache_control: MERGE` wird die History einmalig ohne Cache-Parameter nachgeladen
-- **Kontextgrenze:** aus `model_configs[].file_feature.token_limit` bzw. `normal_history_and_file_token_limit` (Rückfall: 890.880)
+- **Kontextfenster:** **1.000.000 Token** (DeepSeek V4, offizieller „1M-Standard"; <https://api-docs.deepseek.com/news/news260424/>). Die Client-Settings liefern nur Datei-/History-Limits (`file_feature.token_limit`, `normal_history_and_file_token_limit` = 890.880) — sie werden informativ im Tooltip gezeigt und nur übernommen, wenn sie größer als das Kontextfenster sind.
 - **Verwendete Tampermonkey-APIs:** keine (`@grant none`)
 
 ---
