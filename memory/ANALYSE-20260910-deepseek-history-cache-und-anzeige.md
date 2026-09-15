@@ -356,7 +356,57 @@ macht keine externen Requests). Wird das Fenster vergrößert, greift die Anhebu
 wird es verkleinert, greift die gelernte Grenze aus `CONTEXT_LENGTH_EXCEEDED`. Wer das echte Fenster
 kennt, kann es mit `limitOverride` fest vorgeben.
 
-## 12. Wichtige Codeanker (für künftige Änderungen)
+## 12. Nachtrag v1.2.1 — „Längenbegrenzung erreicht" ist ein **Nachrichten**-Limit, kein Token-Limit
+
+**Meldung des Nutzers:** Im Chat `460a35e7-1948-427a-a077-5d54c02fc207` erscheint bei ~95 % die
+„Längenbegrenzung erreicht".
+
+**Messung:**
+
+```
+Chat 460a35e7: 56 Nachrichten, max = 951.510 Token (= 95,15 % von 1M)
+alle Nachrichten-Status: FINISHED  → kein CONTEXT_LENGTH_EXCEEDED in der History
+Sendeversuch (Playwright, Tampermonkey aktiv, v1.2.0): completion → HTTP 200, Nachricht akzeptiert
+DOM-Suche nach „Längenbegrenzung": kein Treffer
+```
+
+**Ursache (im Bundle belegt):** Der Hinweis stammt aus dem **Server-Fehlercode**
+`MAX_MESSAGE_COUNT_REACHED`, den die App auf den i18n-Key `hintMaxMessageCount` abbildet:
+
+```js
+[x7.MAX_MESSAGE_COUNT_REACHED, { t: "hintMaxMessageCount", r: false }]
+hintMaxMessageCount (DE): "Nachrichtenlimit erreicht. Bitte starten Sie einen neuen Chat."
+hintMaxMessageCount (EN): "Message limit reached. Please start a new chat."
+hintMaxMessageCount (ZH): "消息数量达到上限，请开启新对话"
+```
+
+→ Es ist ein **Nachrichten-Anzahl-Limit** (Anzahl Nachrichten pro Chat), **nicht** die Tokenzahl. Die
+95 % waren Zufall (langer Chat ⇒ viele Tokens **und** viele Nachrichten). Der Hinweis erscheint nur,
+wenn ein Sendevorgang abgelehnt wird — im Test bei 951.568 Token wurde noch akzeptiert.
+
+**Fix (v1.2.1, Commit `7f8c0f4`):**
+
+1. Erkennung des **Fehlercodes** im Antworttext des `completion`-Requests
+   (`checkChatFullText` → Muster `MAX_MESSAGE_COUNT_REACHED`, DE/EN/ZH-Hinweistexte).
+2. Erkennung des **Hinweistexts** in der Oberfläche per `MutationObserver` (`watchChatFullNotice`).
+3. Anzeige: Badge mit `⚠`-Präfix (`📊 ⚠ 967K / 1M  (97 %)`) und Tooltip-Zeile
+   `⚠ DeepSeek meldet: Nachrichtenlimit erreicht`; Zustand pro Chat in
+   `localStorage.xdsTokenBadge.fullSessions`.
+4. **Die Kontextgrenze bleibt unverändert** — ein Nachrichtenlimit darf den Token-Nenner nicht verstellen.
+
+**Fallstrick, den der Test aufgedeckt hat:** Der Beobachter erkannte zunächst seinen **eigenen Tooltip**
+(der die Meldung ja anzeigt) → Rückkopplung, der gemerkte Text wurde zum gesamten Tooltip-Inhalt.
+Lösung: eigene Elemente (`#deepseek-token-badge`, `#deepseek-token-badge-tip`) ausschließen und nur den
+**Treffer** (`match[0]`) speichern.
+
+**Verifikation** (`deepseek-test-chatfull.mjs`, simulierter Hinweis im echten Chat): Badge-Warnpräfix ✓,
+Tooltip-Zeile ✓, Speicherung ✓, Bereinigung ✓, Baseline ohne Warnung ✓ (5/5).
+
+**Zusatz:** `tm-import.mjs` hatte einen Fehler — Tampermonkey schließt den Bestätigungs-Tab nach dem
+Update selbst, das Werkzeug wertete das als Abbruch. Jetzt gilt ein geschlossener Tab als `RESULT_OK`;
+die Skriptversion im Playwright-Profil ist damit auf 1.2.x aktualisiert (Badge zeigt 1M-Nenner).
+
+## 13. Wichtige Codeanker (für künftige Änderungen)
 
 | Zweck | Wert |
 |---|---|
@@ -370,7 +420,7 @@ kennt, kann es mit `limitOverride` fest vorgeben.
 | Netzwerkweg | `XMLHttpRequest` (fetch nur Absicherung) |
 | Merker | `localStorage.xdsTokenBadge.sessionTokens` |
 
-## 13. Umgebungs-Erkenntnisse (wiederverwendbar)
+## 14. Umgebungs-Erkenntnisse (wiederverwendbar)
 
 - **GF-Auto-Sync ist NICHT webhook-basiert:** kein GitHub-Hook im Repo
   (`gh api repos/immerzu/xDeepSeek_Token_Badge/hooks` → leer) → GF zieht periodisch.
@@ -392,7 +442,7 @@ kennt, kann es mit `limitOverride` fest vorgeben.
 - **Meine Fehlspur:** Ein TM-Check über `GM_info` / `script[src*=tampermonkey]` ist untauglich
   (beides existiert so nicht) — er meldete fälschlich „kein TM".
 
-## 14. Offene Punkte
+## 15. Offene Punkte
 
 - [ ] Aktiven **Zweig** statt Maximum zählen (parent_id-Kette + `currentChildIndex`).
 - [ ] **Datei-Tokens** berücksichtigen (App addiert `getFilesTokenCount`).
@@ -401,7 +451,7 @@ kennt, kann es mit `limitOverride` fest vorgeben.
 - [ ] Optional: Wert aus SSE-Deltas (`/api/v0/chat/completion`) mitlesen → live statt nur beim Load.
 - [ ] Optional: GF-Tags (`deepseek`, `token`, `context`, `badge`, `chat`) im GF-UI ergänzen.
 
-## 15. Commits dieser Session
+## 16. Commits dieser Session
 
 | Commit | Inhalt |
 |---|---|
@@ -421,6 +471,7 @@ kennt, kann es mit `limitOverride` fest vorgeben.
 | `dba41f0` | v1.1.1 — Tooltip schließt bei Mausbewegung, Pin-Toggle korrigiert, SPA-Reset |
 | `dc38948` | v1.1.2 — Kontextfenster 1 Mio. (V4) statt Datei-Limit 890.880 → kein Füllstand > 100 % |
 | `eeb953a` | v1.2.0 — lernfähige Kontextgrenze (Override → gelernt → Settings → 1M) |
+| `7f8c0f4` | v1.2.1 — voller Chat erkannt (`MAX_MESSAGE_COUNT_REACHED`), ⚠-Anzeige, Session-Merker |
 
 Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
 Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:

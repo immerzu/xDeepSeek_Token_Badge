@@ -13,10 +13,13 @@ Dieser Ordner ist das dauerhafte Gedächtnis des Projekts. **Vor** Arbeiten am S
 
 ## Kurzfassung des aktuellen Stands
 
-- Skript **v1.2.0** ist auf Greasy Fork live (`https://greasyfork.org/de/scripts/595207.json`),
+- Skript **v1.2.1** ist auf Greasy Fork live (`https://greasyfork.org/de/scripts/595207.json`),
   Quelle ist `main/xdeepseek-token-badge.user.js`, Auto-Sync (periodisch, **kein Webhook**).
 - Badge zeigt dreistellig gerundet: `📊 945K / 1M  (95 %)`; Details im **eigenen Tooltip**
   (exakter Wert, Kontextfenster + Quelle + Datei-Limit, Nachlade-Status) — 5 Zeilen ohne Umbrüche (max-width 420 px).
+- **Voller Chat:** Meldet DeepSeek „Nachrichtenlimit erreicht" (`MAX_MESSAGE_COUNT_REACHED`), zeigt das
+  Badge **⚠** und der Tooltip die Meldung. Das ist ein **Nachrichten-Anzahl-Limit**, unabhängig von der
+  Tokenzahl — die Kontextgrenze bleibt dabei unverändert.
 - **Kontextgrenze ist lernfähig (v1.2.0):** Priorität Override (`xdsTokenBadge.limitOverride`) →
   gelernt aus Status `CONTEXT_LENGTH_EXCEEDED` (`xdsTokenBadge.limit`) → Settings (nur wenn > 1M) →
   Standard **1.000.000** (DeepSeek V4). `xdsTokenBadge.observedMax` hebt die Grenze an, wenn der

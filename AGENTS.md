@@ -77,7 +77,10 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   `deepseek-share-test.mjs` (analysiert Share-Seiten `/share/<id>` samt Tokenstand),
   `deepseek-find-chat.mjs` (sucht einen Chat per Titel im Account und prüft dort den Zähler),
   `deepseek-context-check.mjs` (prüft Nenner/Füllstand: Tokenverlauf, Textmenge, Limit-Kandidaten),
-  `deepseek-test-limit.mjs` (prüft die dynamische/lernfähige Kontextgrenze samt Override).
+  `deepseek-test-limit.mjs` (prüft die dynamische/lernfähige Kontextgrenze samt Override),
+  `deepseek-test-chatfull.mjs` (prüft die Erkennung des vollen Chats),
+  `deepseek-send-at-limit.mjs` (Sendeversuch am Limit, mit Extensions/Tampermonkey),
+  `deepseek-limit-notice.mjs` (sucht Limit-Hinweise in der UI).
   **Ablauf, Befehle und erwartete Checks: `memory/TESTEN-userscript-deepseek.md`**
 - Skills: `greasy-fork-publish`, `userscript-beschreibungen-immerzu`, `github-immerzu`,
   `playwright-browser`, `tampermonkey-install-update`
@@ -113,6 +116,15 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   nur ein **Datei-/History-Limit** (890.880) — wer das als Kontextgrenze einsetzt, bekommt Füllstände
   über 100 % (so passiert in v1.0.4–v1.1.1, korrigiert in v1.1.2). Der Wert steht nur informativ im
   Tooltip und wird nur übernommen, wenn er größer als 1M ist.
+- **„Nachrichtenlimit erreicht" ist NICHT das Tokenlimit (seit v1.2.1):** DeepSeek lehnt das Senden mit
+  dem Server-Fehlercode **`MAX_MESSAGE_COUNT_REACHED`** ab; die App zeigt dafür den i18n-Key
+  `hintMaxMessageCount` (DE „Nachrichtenlimit erreicht. Bitte starten Sie einen neuen Chat.",
+  EN „Message limit reached…", ZH „消息数量达到上限…"). Das Skript erkennt Fehlercode **und** Hinweistext,
+  zeigt `⚠` im Badge plus eine Tooltip-Zeile und merkt den Zustand je Chat
+  (`xdsTokenBadge.fullSessions`). **Die Kontextgrenze wird dabei absichtlich nicht verändert** —
+  das Limit zählt Nachrichten, nicht Tokens. Fallstrick: Ein MutationObserver für den Hinweis muss die
+  **eigenen Elemente** (`#deepseek-token-badge`, `…-tip`) ausschließen, sonst erkennt er seinen eigenen
+  Tooltip und überschreibt den gemerkten Text.
 - **Kontextgrenze ist lernfähig (seit v1.2.0):** DeepSeek meldet das Kontextfenster in keinem Feld,
   deshalb lernt das Skript es. Priorität: `localStorage.xdsTokenBadge.limitOverride` (manuell) →
   `xdsTokenBadge.limit` (gelernt, sobald eine Nachricht den Status **`CONTEXT_LENGTH_EXCEEDED`** hat —

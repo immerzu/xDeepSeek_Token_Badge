@@ -35,6 +35,9 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-share-test.mjs` | **Geteilte Chats (v1.1.0):** öffnet eine Share-URL (`DS_URL=https://chat.deepseek.com/share/<id>`), protokolliert **alle** JSON-Antworten (Endpoint, Struktur, Tokenfelder) und liest Badge + Tooltip + Merker. Belegt, dass `/api/v0/share/content` den Tokenstand enthält. |
 | `deepseek-context-check.mjs` | **Nenner-/Füllstand-Prüfung (v1.1.2):** öffnet einen Chat, liest Badge + Tooltip, schneidet `history_messages` mit (Tokenverlauf, `fragments`-Textmenge, `chat_session`-Felder) und rechnet den Prozentsatz gegen mehrere Limit-Kandidaten. Damit wurde der Fehlschluss „890.880 = Kontextgrenze" entlarvt (Füllstand > 100 %). |
 | `deepseek-test-limit.mjs` | **Dynamische Grenze (v1.2.0):** öffnet einen Chat, setzt `xdsTokenBadge.limitOverride` (z. B. 2.000.000), prüft Badge + Tooltip-Quelle, entfernt den Override wieder und kontrolliert den Rückfall auf den Standard. Gibt `LIM:CHECKS` aus (u. a. `overrideApplied`, `clearedBackTo1M`, `observedMaxStored`). |
+| `deepseek-test-chatfull.mjs` | **Voller Chat (v1.2.1):** simuliert DeepSeeks Hinweis „Nachrichtenlimit erreicht. Bitte starten Sie einen neuen Chat." im DOM und prüft Badge-⚠, Tooltip-Zeile, Speicherung in `xdsTokenBadge.fullSessions` und die Bereinigung. Gibt `FULL:CHECKS` aus. |
+| `deepseek-send-at-limit.mjs` | **Sendeversuch** in einem Chat am Limit (Browser **mit** Extensions/Tampermonkey): protokolliert Requests, konsolen-Logs, Toast-/Hinweistexte und Badge-Zustand. Damit wurde belegt, dass bei 951.568 Token noch akzeptiert wird (`completion` → 200). |
+| `deepseek-limit-notice.mjs` | Sucht Limit-Hinweise in der UI (Buttons, Eingabebereich, Toasts) per MutationObserver — ohne zu senden. |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
 
