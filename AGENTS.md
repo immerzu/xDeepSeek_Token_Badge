@@ -76,7 +76,8 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   `deepseek-test-tooltip.mjs` (prüft, dass der Tooltip Tastendrücke übersteht und per Klick fixiert),
   `deepseek-share-test.mjs` (analysiert Share-Seiten `/share/<id>` samt Tokenstand),
   `deepseek-find-chat.mjs` (sucht einen Chat per Titel im Account und prüft dort den Zähler),
-  `deepseek-context-check.mjs` (prüft Nenner/Füllstand: Tokenverlauf, Textmenge, Limit-Kandidaten).
+  `deepseek-context-check.mjs` (prüft Nenner/Füllstand: Tokenverlauf, Textmenge, Limit-Kandidaten),
+  `deepseek-test-limit.mjs` (prüft die dynamische/lernfähige Kontextgrenze samt Override).
   **Ablauf, Befehle und erwartete Checks: `memory/TESTEN-userscript-deepseek.md`**
 - Skills: `greasy-fork-publish`, `userscript-beschreibungen-immerzu`, `github-immerzu`,
   `playwright-browser`, `tampermonkey-install-update`
@@ -112,6 +113,13 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   nur ein **Datei-/History-Limit** (890.880) — wer das als Kontextgrenze einsetzt, bekommt Füllstände
   über 100 % (so passiert in v1.0.4–v1.1.1, korrigiert in v1.1.2). Der Wert steht nur informativ im
   Tooltip und wird nur übernommen, wenn er größer als 1M ist.
+- **Kontextgrenze ist lernfähig (seit v1.2.0):** DeepSeek meldet das Kontextfenster in keinem Feld,
+  deshalb lernt das Skript es. Priorität: `localStorage.xdsTokenBadge.limitOverride` (manuell) →
+  `xdsTokenBadge.limit` (gelernt, sobald eine Nachricht den Status **`CONTEXT_LENGTH_EXCEEDED`** hat —
+  dann gilt der zuletzt gültige Tokenstand als echte Grenze, funktioniert auch bei Verkleinerung) →
+  Settings-Limit nur wenn > 1M → Standard 1.000.000. `xdsTokenBadge.observedMax` merkt den größten
+  Tokenstand und hebt die Grenze auf den nächsten 100k-Schritt an, wenn er sie übersteigt.
+  Der Tooltip nennt immer die Quelle. Wer an der Grenze arbeitet, muss diese Kette erhalten.
 - **Badge-Bedienung (seit v1.0.7):** Das Badge hat `pointer-events: auto` (vorher `none`) und ist per
   Pointer-Events **verschiebbar**; die Position liegt in `localStorage` (`xdsTokenBadge.position`),
   Doppelklick setzt in die Standardecke zurück. Wer Interaktionslogik ändert, muss beachten, dass das

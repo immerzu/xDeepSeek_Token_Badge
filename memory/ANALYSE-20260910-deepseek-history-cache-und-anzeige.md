@@ -318,7 +318,45 @@ alle 12 UI-Checks grün (Umbruch-, Tastendruck-, Pin-Verhalten unverändert).
 Kontextfenster. Bevor ein Nenner geändert wird, muss die **Bedeutung** des Feldes belegt sein
 (Doku/Kontext im Code) und die Zahl gegen die Empirie geprüft werden (Füllstand > 100 % = Nenner zu klein).
 
-## 11. Wichtige Codeanker (für künftige Änderungen)
+## 11. Nachtrag v1.2.0 — lernfähige Kontextgrenze (Anpassung an künftige Änderungen)
+
+**Frage des Nutzers:** Erkennt das Skript eine künftige Änderung der Tokenanzahl automatisch, bzw.
+kann man es so anpassen, dass es die Tokenanzahl dynamisch verwaltet?
+
+**Befund:** DeepSeek meldet das Kontextfenster in **keinem** Datenfeld (alle Settings geprüft: nur
+Datei-/History-Limits). Es gibt aber ein verwertbares Signal: den Nachrichten-Status
+**`CONTEXT_LENGTH_EXCEEDED`** — der Client kennt ihn und rechnet dann mit „unendlich"
+(`t3 = e => e.status === CONTEXT_LENGTH_EXCEEDED ? 1/0 : …`).
+
+**Umsetzung (Commit `eeb953a`), Prioritätskette:**
+
+| Priorität | Quelle | Schlüssel / Auslöser |
+|---|---|---|
+| 1 | **Manuell** | `localStorage.xdsTokenBadge.limitOverride` (Zahl) |
+| 2 | **Gelernt (belastbar)** | `xdsTokenBadge.limit` — gesetzt, sobald eine Nachricht `CONTEXT_LENGTH_EXCEEDED` hat; Wert = zuletzt gültiger Tokenstand |
+| 3 | **Settings** | nur wenn ein App-Limit **> 1M** gemeldet wird |
+| 4 | **Standard** | 1.000.000 (DeepSeek V4, „1M-Standard") |
+
+Zusätzlich `xdsTokenBadge.observedMax`: Übersteigt ein Tokenstand die angenommene Grenze, wird sie
+auf den nächsten 100k-Schritt angehoben (untere Schranke) — die Anzeige bleibt plausibel.
+Der Tooltip nennt immer die Quelle, z. B. `Kontext 1.000.000 · DeepSeek V4 (1M) · Datei-Limit 890.880`
+oder `Kontext 2.000.000 · manuell gesetzt (localStorage)`.
+
+**Verifiziert** (`deepseek-test-limit.mjs`, Chat `e26321a7…`):
+
+```
+standard          📊 945K / 1M  (95 %)   Kontext 1.000.000 · DeepSeek V4 (1M) · Datei-Limit 890.880
+Override 2.000.000 📊 945K / 2M  (47 %)   Kontext 2.000.000 · manuell gesetzt (localStorage)
+Override entfernt  📊 945K / 1M  (95 %)   ← Rückfall korrekt
+observedMax = 945022 gespeichert
+```
+
+**Grenze der Automatik (ehrlich):** Ein Abgleich mit der DeepSeek-Doku findet nicht statt (das Skript
+macht keine externen Requests). Wird das Fenster vergrößert, greift die Anhebung per Beobachtung;
+wird es verkleinert, greift die gelernte Grenze aus `CONTEXT_LENGTH_EXCEEDED`. Wer das echte Fenster
+kennt, kann es mit `limitOverride` fest vorgeben.
+
+## 12. Wichtige Codeanker (für künftige Änderungen)
 
 | Zweck | Wert |
 |---|---|
@@ -332,7 +370,7 @@ Kontextfenster. Bevor ein Nenner geändert wird, muss die **Bedeutung** des Feld
 | Netzwerkweg | `XMLHttpRequest` (fetch nur Absicherung) |
 | Merker | `localStorage.xdsTokenBadge.sessionTokens` |
 
-## 12. Umgebungs-Erkenntnisse (wiederverwendbar)
+## 13. Umgebungs-Erkenntnisse (wiederverwendbar)
 
 - **GF-Auto-Sync ist NICHT webhook-basiert:** kein GitHub-Hook im Repo
   (`gh api repos/immerzu/xDeepSeek_Token_Badge/hooks` → leer) → GF zieht periodisch.
@@ -354,7 +392,7 @@ Kontextfenster. Bevor ein Nenner geändert wird, muss die **Bedeutung** des Feld
 - **Meine Fehlspur:** Ein TM-Check über `GM_info` / `script[src*=tampermonkey]` ist untauglich
   (beides existiert so nicht) — er meldete fälschlich „kein TM".
 
-## 13. Offene Punkte
+## 14. Offene Punkte
 
 - [ ] Aktiven **Zweig** statt Maximum zählen (parent_id-Kette + `currentChildIndex`).
 - [ ] **Datei-Tokens** berücksichtigen (App addiert `getFilesTokenCount`).
@@ -363,7 +401,7 @@ Kontextfenster. Bevor ein Nenner geändert wird, muss die **Bedeutung** des Feld
 - [ ] Optional: Wert aus SSE-Deltas (`/api/v0/chat/completion`) mitlesen → live statt nur beim Load.
 - [ ] Optional: GF-Tags (`deepseek`, `token`, `context`, `badge`, `chat`) im GF-UI ergänzen.
 
-## 14. Commits dieser Session
+## 15. Commits dieser Session
 
 | Commit | Inhalt |
 |---|---|
@@ -382,6 +420,7 @@ Kontextfenster. Bevor ein Nenner geändert wird, muss die **Bedeutung** des Feld
 | `c653ee3` | v1.1.0 — geteilte Chats unterstützt (`/api/v0/share/content`) |
 | `dba41f0` | v1.1.1 — Tooltip schließt bei Mausbewegung, Pin-Toggle korrigiert, SPA-Reset |
 | `dc38948` | v1.1.2 — Kontextfenster 1 Mio. (V4) statt Datei-Limit 890.880 → kein Füllstand > 100 % |
+| `eeb953a` | v1.2.0 — lernfähige Kontextgrenze (Override → gelernt → Settings → 1M) |
 
 Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
 Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:
