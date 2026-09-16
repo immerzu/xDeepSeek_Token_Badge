@@ -592,7 +592,7 @@ zieht nichts); Greasy Fork führt weiter v1.2.4. So vom Nutzer gewünscht.
 | `7f8c0f4` | v1.2.1 — voller Chat erkannt (`MAX_MESSAGE_COUNT_REACHED`), ⚠-Anzeige, Session-Merker |
 | `f19f0a7` | v1.2.4 — Kontextgrenze bewusst 900K (Nutzerentscheidung) + Formatierungsfehler „1,1M / 1M" behoben |
 | `e916238` | Memory: v1.2.4 nachgetragen |
-| *(dieser Commit)* | v1.2.5 — Grenze **gemessen** 960K (Kontext + Prompt), Längenbegrenzung erkannt, Beobachtungs-Anhebung entfernt (nur Repo, kein Push) |
+| `52232ee` | v1.2.5 — Grenze **gemessen** 960K (Kontext + Prompt), Längenbegrenzung erkannt, Beobachtungs-Anhebung entfernt (nur Repo, kein Push) |
 
 Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
 Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:
