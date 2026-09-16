@@ -13,19 +13,22 @@ Dieser Ordner ist das dauerhafte Gedächtnis des Projekts. **Vor** Arbeiten am S
 
 ## Kurzfassung des aktuellen Stands
 
-- Skript **v1.2.1** ist auf Greasy Fork live (`https://greasyfork.org/de/scripts/595207.json`),
+- Skript **v1.2.4** ist auf Greasy Fork live (`https://greasyfork.org/de/scripts/595207.json`),
   Quelle ist `main/xdeepseek-token-badge.user.js`, Auto-Sync (periodisch, **kein Webhook**).
-- Badge zeigt dreistellig gerundet: `📊 945K / 1M  (95 %)`; Details im **eigenen Tooltip**
-  (exakter Wert, Kontextfenster + Quelle + Datei-Limit, Nachlade-Status) — 5 Zeilen ohne Umbrüche (max-width 420 px).
+- Badge zeigt dreistellig gerundet: `📊 967K / 900K  (107 %)`; Details im **eigenen Tooltip**
+  (exakter Wert, Grenze + Quelle + Datei-Limit, Nachlade-Status) — 5 Zeilen ohne Umbrüche (max-width 420 px).
 - **Voller Chat:** Meldet DeepSeek „Nachrichtenlimit erreicht" (`MAX_MESSAGE_COUNT_REACHED`), zeigt das
   Badge **⚠** und der Tooltip die Meldung. Das ist ein **Nachrichten-Anzahl-Limit**, unabhängig von der
   Tokenzahl — die Kontextgrenze bleibt dabei unverändert.
 - **Kontextgrenze ist lernfähig (v1.2.0):** Priorität Override (`xdsTokenBadge.limitOverride`) →
-  gelernt aus Status `CONTEXT_LENGTH_EXCEEDED` (`xdsTokenBadge.limit`) → Settings (nur wenn > 1M) →
-  Standard **1.000.000** (DeepSeek V4). `xdsTokenBadge.observedMax` hebt die Grenze an, wenn der
+  gelernt aus Status `CONTEXT_LENGTH_EXCEEDED` (`xdsTokenBadge.limit`) → Settings (nur wenn > 900K) →
+  Standard **900.000**. `xdsTokenBadge.observedMax` hebt die Grenze an, wenn der
   Tokenstand sie übersteigt. Der Tooltip nennt immer die Quelle.
-- **Kontextfenster = 1.000.000 Token** (DeepSeek V4, offizieller „1M-Standard"). Die Settings-Werte
-  890.880 sind **Datei-/History-Limits** und dürfen nicht als Kontextgrenze dienen (sonst > 100 %).
+- **Kontextgrenze = 900.000 Token — bewusste Setzung (v1.2.4).** Die offizielle Doku nennt für V4
+  1 Mio.; der kleinere Wert ist gewünscht. Die Settings-Werte 890.880 sind **Datei-/History-Limits**
+  und dürfen nicht als Kontextgrenze dienen.
+- **Formatierungsregel:** Die „M"-Schwelle in `formatTokens` ist **fest 1.000.000** — nie an die
+  Kontextgrenze koppeln, sonst entsteht „1,1M / 1M" (Fehler aus v1.2.2/v1.2.3).
 - Tooltip: Tastendruck lässt ihn stehen (screenshot-fähig), **Mausbewegung blendet ihn aus**,
   Klick fixiert ihn (zweiter Klick/`Escape` löst).
 - **Auch geteilte Chats** (`/share/<id>`) werden ausgelesen (`/api/v0/share/content`) — dort gilt der

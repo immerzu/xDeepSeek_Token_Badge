@@ -406,13 +406,55 @@ Tooltip-Zeile ✓, Speicherung ✓, Bereinigung ✓, Baseline ohne Warnung ✓ (
 Update selbst, das Werkzeug wertete das als Abbruch. Jetzt gilt ein geschlossener Tab als `RESULT_OK`;
 die Skriptversion im Playwright-Profil ist damit auf 1.2.x aktualisiert (Badge zeigt 1M-Nenner).
 
-## 13. Wichtige Codeanker (für künftige Änderungen)
+## 13. Nachtrag v1.2.4 — Kontextgrenze bewusst auf 900K gesetzt + Formatierungsfehler behoben
+
+**Ausgangslage:** Außerhalb dieser Session entstanden im `!Ausgabe\`-Ordner die Versionen **v1.2.2** und
+**v1.2.3** (16.09., vom Nutzer selbst erstellt): `CONTEXT_WINDOW = 900000` und — als Fehler — die
+**„M"-Schwelle in `formatTokens` an die Grenze gekoppelt** (`if (n >= 900000) … n / 900000 … + 'M'`).
+Diese Dateien lagen **nur** dort: nicht im Repo (Stand v1.2.1), nicht auf Greasy Fork, nicht im Gedächtnis.
+
+**Symptom (Nutzer):** Badge zeigt **„📊 1,1M / 1M  (106 %)"** — Füllstand wieder über 100 % und
+unsinnige Einheiten. Beleg per Rechnung:
+
+```
+951.510 Token, Grenze 900.000, M-Schwelle 900.000   →  1,1M / 1M   (106 %)   ← Fehler
+951.510 Token, Grenze 900.000, M-Schwelle 1.000.000 →  952K / 900K (106 %)   ← korrekt
+```
+
+**Entscheidungen (mit dem Nutzer geklärt):** Die **900.000 bleiben** (bewusste Praxisgrenze; die
+offizielle Doku nennt für V4 1 Mio.). Der Fehler war die **Formatierung**, nicht die Grenze.
+
+**Fix (v1.2.4):**
+
+1. `CONTEXT_WINDOW = 900000`, `CONTEXT_SOURCE = 'gesetzt: 900K (Praxisgrenze)'` — Priorität/Lernkette
+   unverändert; ein Settings-Limit wird nur übernommen, wenn es **größer** als 900K ist.
+2. **`formatTokens` behält die feste 1-Mio.-Schwelle für „M"** — sie darf nie an die Kontextgrenze
+   gekoppelt werden. Werte über der Grenze erscheinen dadurch als `967K`, die Grenze als `900K`
+   (gleiche Einheit, konsistente Aussage).
+3. Doku in allen Sprachen auf „Praxisgrenze 900.000 (bewusst gesetzt)" umgestellt.
+
+**Verifikation:** Rechenbeleg (951.510 → `952K / 900K (106 %)`, 966.769 → `967K / 900K (107 %)`,
+894.000 → `894K / 900K (99 %)`) und im echten Chat `460a35e7…`: Badge
+**`📊 967K / 900K  (107 %)`**, Tooltip `Exakt: 966.769 von 900.000 Token (107,42 %)` +
+`Kontext 900.000 · gesetzt: 900K (Praxisgrenze) · Datei-Limit 890.880`.
+Der Tooltip-Hover wurde per Debug-Lauf zusätzlich bestätigt (`tipDisplay: block`, `mouseenter: 1`,
+`elementFromPoint` = Badge); ein vorheriger Fehlschlag im UI-Test war ein Testartefakt.
+
+**Lehren:**
+
+- **Anzeige-Einheiten nie an die Datenbasis koppeln:** Die Schwelle, die die Einheit bestimmt (K/M),
+  gehört fest — sonst erscheint der Wert „größer" als sein eigener Nenner.
+- **Änderungen immer über das Repo** (Arbeitsdatei → Commit → Push → GF-Sync). Versionen nur im
+  `!Ausgabe\`-Ordner sind für niemanden nachvollziehbar und laufen dem Gedächtnis/GF-Stand davon.
+
+## 14. Wichtige Codeanker (für künftige Änderungen)
 
 | Zweck | Wert |
 |---|---|
 | Kontextgrenze (Tokenstand) | `accumulated_token_usage` in `data.biz_data.chat_messages[]` |
 | Tokenstand (geteilter Chat) | `accumulated_token_usage` in `data.biz_data.messages[]` — Endpunkt `GET /api/v0/share/content?share_id=…` |
-| Kontextgrenze (Limit) | **Kontextfenster 1.000.000** (DeepSeek V4, „1M-Standard"); `model_configs[].file_feature.token_limit(_with_thinking)` und `normal_history_and_file_token_limit` = 890.880 sind nur **Datei-/History-Limits** |
+| Kontextgrenze (Limit) | **bewusst 900.000 Token** (`CONTEXT_WINDOW`, v1.2.4; Doku nennt 1 Mio.). `model_configs[].file_feature.token_limit(_with_thinking)` und `normal_history_and_file_token_limit` = 890.880 sind nur **Datei-/History-Limits** |
+| Einheiten-Formatierung | `formatTokens`: „M" **nur** ab der festen Schwelle 1.000.000 — nicht an `CONTEXT_WINDOW` koppeln (sonst „1,1M / 1M") |
 | Endpunkt History | `GET /api/v0/chat/history_messages?chat_session_id=…[&cache_version=…&cache_reset_at=…]` |
 | Endpunkt Settings | `GET /api/v0/client/settings?did=…&scope=model\|main` |
 | Cache-Steuerung | `biz_data.cache_control`: `REPLACE` (voll) / `MERGE` (Deltas) |
@@ -420,7 +462,7 @@ die Skriptversion im Playwright-Profil ist damit auf 1.2.x aktualisiert (Badge z
 | Netzwerkweg | `XMLHttpRequest` (fetch nur Absicherung) |
 | Merker | `localStorage.xdsTokenBadge.sessionTokens` |
 
-## 14. Umgebungs-Erkenntnisse (wiederverwendbar)
+## 15. Umgebungs-Erkenntnisse (wiederverwendbar)
 
 - **GF-Auto-Sync ist NICHT webhook-basiert:** kein GitHub-Hook im Repo
   (`gh api repos/immerzu/xDeepSeek_Token_Badge/hooks` → leer) → GF zieht periodisch.
@@ -442,7 +484,7 @@ die Skriptversion im Playwright-Profil ist damit auf 1.2.x aktualisiert (Badge z
 - **Meine Fehlspur:** Ein TM-Check über `GM_info` / `script[src*=tampermonkey]` ist untauglich
   (beides existiert so nicht) — er meldete fälschlich „kein TM".
 
-## 15. Offene Punkte
+## 16. Offene Punkte
 
 - [ ] Aktiven **Zweig** statt Maximum zählen (parent_id-Kette + `currentChildIndex`).
 - [ ] **Datei-Tokens** berücksichtigen (App addiert `getFilesTokenCount`).
@@ -451,7 +493,7 @@ die Skriptversion im Playwright-Profil ist damit auf 1.2.x aktualisiert (Badge z
 - [ ] Optional: Wert aus SSE-Deltas (`/api/v0/chat/completion`) mitlesen → live statt nur beim Load.
 - [ ] Optional: GF-Tags (`deepseek`, `token`, `context`, `badge`, `chat`) im GF-UI ergänzen.
 
-## 16. Commits dieser Session
+## 17. Commits dieser Session
 
 | Commit | Inhalt |
 |---|---|

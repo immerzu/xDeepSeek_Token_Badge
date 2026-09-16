@@ -109,13 +109,21 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   (`--hide-crash-restore-bubble`, `--no-first-run`, `--no-default-browser-check`) plus
   `resetProfileCrashFlag()` vor jedem Start (von `launchBrowser()` und allen `deepseek-*.mjs`
   aufgerufen). Neue Launcher müssen `args: BASE_ARGS` setzen.
-- **Kontextfenster ist 1 Mio. Token — NICHT 890.880:** DeepSeek V4 hat laut offizieller Doku
-  (<https://api-docs.deepseek.com/news/news260424/>, „1M Standard: 1M context is now the default")
-  ein Fenster von 1.000.000 Token. Die Client-Settings
+- **Kontextgrenze: bewusst 900.000 Token (Stand v1.2.4).** `CONTEXT_WINDOW = 900000`, Quelle im
+  Tooltip „gesetzt: 900K (Praxisgrenze)". Die offizielle DeepSeek-Doku nennt für V4 „1M context"
+  (<https://api-docs.deepseek.com/news/news260424/>) — der kleinere Wert ist eine **bewusste Setzung**
+  des Nutzers, nicht aus den Daten ableitbar. Die Client-Settings
   (`model_configs[].file_feature.token_limit`, `normal_history_and_file_token_limit`) melden dagegen
   nur ein **Datei-/History-Limit** (890.880) — wer das als Kontextgrenze einsetzt, bekommt Füllstände
-  über 100 % (so passiert in v1.0.4–v1.1.1, korrigiert in v1.1.2). Der Wert steht nur informativ im
-  Tooltip und wird nur übernommen, wenn er größer als 1M ist.
+  über 100 % (so passiert in v1.0.4–v1.1.1). Der Wert steht nur informativ im Tooltip und wird nur
+  übernommen, wenn er größer als die gesetzte Grenze ist.
+- **Formatierungsregel (Fallstrick aus v1.2.2/1.2.3):** `formatTokens` nutzt **immer** die feste
+  1-Mio.-Schwelle für „M" (`if (n >= 1000000)`). Diese Schwelle darf **nicht** an `CONTEXT_WINDOW`
+  gekoppelt werden — sonst erscheint ein Wert über der Grenze als „1,1M", während die Grenze selbst
+  „1M" heißt (Anzeige „1,1M / 1M (106 %)"). Richtig ist `952K / 900K (106 %)`.
+- **Prozessregel:** Änderungen **immer** in `xdeepseek-token-badge.user.js` (Repo) → Commit → Push →
+  GF-Sync. Dateien nur in `!Ausgabe\` zu erzeugen (wie v1.2.2/v1.2.3) führt zu Versionen ohne
+  Veröffentlichung, ohne Gedächtnis-Eintrag und mit Fehlern, die niemand nachvollziehen kann.
 - **„Nachrichtenlimit erreicht" ist NICHT das Tokenlimit (seit v1.2.1):** DeepSeek lehnt das Senden mit
   dem Server-Fehlercode **`MAX_MESSAGE_COUNT_REACHED`** ab; die App zeigt dafür den i18n-Key
   `hintMaxMessageCount` (DE „Nachrichtenlimit erreicht. Bitte starten Sie einen neuen Chat.",
@@ -129,7 +137,7 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   deshalb lernt das Skript es. Priorität: `localStorage.xdsTokenBadge.limitOverride` (manuell) →
   `xdsTokenBadge.limit` (gelernt, sobald eine Nachricht den Status **`CONTEXT_LENGTH_EXCEEDED`** hat —
   dann gilt der zuletzt gültige Tokenstand als echte Grenze, funktioniert auch bei Verkleinerung) →
-  Settings-Limit nur wenn > 1M → Standard 1.000.000. `xdsTokenBadge.observedMax` merkt den größten
+  Settings-Limit nur wenn > 900K → Standard **900.000** (gesetzte Praxisgrenze). `xdsTokenBadge.observedMax` merkt den größten
   Tokenstand und hebt die Grenze auf den nächsten 100k-Schritt an, wenn er sie übersteigt.
   Der Tooltip nennt immer die Quelle. Wer an der Grenze arbeitet, muss diese Kette erhalten.
 - **Badge-Bedienung (seit v1.0.7):** Das Badge hat `pointer-events: auto` (vorher `none`) und ist per

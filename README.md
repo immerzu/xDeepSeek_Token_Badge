@@ -11,7 +11,7 @@ Ein Tampermonkey-Userscript, das den aktuellen **Kontext-Füllstand** des DeepSe
 
 ## Was macht dieses Skript?
 
-DeepSeek schneidet den ältesten Teil der Konversation ab, sobald der Kontext voll ist — der Chat „vergisst" frühere Details. Das Problem: DeepSeek zeigt nirgendwo an, **wie voll** das Fenster gerade ist. Das Skript rechnet deshalb gegen das **Kontextfenster von 1.000.000 Token** (DeepSeek V4, offizieller „1M-Standard").
+DeepSeek schneidet den ältesten Teil der Konversation ab, sobald der Kontext voll ist — der Chat „vergisst" frühere Details. Das Problem: DeepSeek zeigt nirgendwo an, **wie voll** das Fenster gerade ist. Das Skript rechnet deshalb gegen eine **Praxisgrenze von 900.000 Token** (bewusst gesetzt; die offizielle DeepSeek-Doku nennt für V4 1 Mio.).
 
 Dieses Skript fängt die API-Antworten des DeepSeek-Web-Chats ab, liest das Feld `accumulated_token_usage` daraus und zeigt es als kleines Badge unten rechts an:
 
@@ -28,7 +28,7 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 ## Features
 
 - 🎯 **Live-Anzeige** des aktuellen Token-Füllstands (dreistellig gerundet + Prozent, exakt im Tooltip)
-- 📐 **Passende Grenze** — gerechnet wird gegen das V4-Kontextfenster (1 Mio. Token); das Datei-/History-Limit der App (890.880) zeigt der Tooltip zusätzlich
+- 📐 **Passende Grenze** — gerechnet wird gegen die gesetzte Praxisgrenze (900.000 Token); das Datei-/History-Limit der App (890.880) zeigt der Tooltip zusätzlich
 - 🚀 **Null Konfiguration** — installieren, fertig
 - 🔒 **Lokal & sicher** — kein Server, keine externen Aufrufe, kein Tracking
 - 🖱️ **Verschiebbar** — mit der Maus an jede Stelle ziehen; Position bleibt erhalten, Doppelklick setzt das Badge zurück
@@ -76,7 +76,8 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 - **Ziel-Endpunkte:** `*/chat/history_messages` (Tokenstand), `*/client/settings` (Kontextgrenze), `*/chat/completion` (Ende des Antwort-Streams → Nachladen auslösen), `*/share/content` (geteilte Unterhaltung)
 - **Ausgelesenes Feld:** `data.biz_data.chat_messages[].accumulated_token_usage` (in der Share-Ansicht `data.biz_data.messages[].accumulated_token_usage`)
 - **Angezeigter Wert:** Maximum der `accumulated_token_usage`-Werte; bei `cache_control: MERGE` wird die History einmalig ohne Cache-Parameter nachgeladen
-- **Kontextfenster:** **1.000.000 Token** (DeepSeek V4, offizieller „1M-Standard"; <https://api-docs.deepseek.com/news/news260424/>). Die Client-Settings liefern nur Datei-/History-Limits (`file_feature.token_limit`, `normal_history_and_file_token_limit` = 890.880) — sie werden informativ im Tooltip gezeigt und nur übernommen, wenn sie größer als das Kontextfenster sind.
+- **Kontextfenster:** **900.000 Token** — bewusst gesetzte Praxisgrenze (`CONTEXT_WINDOW`, v1.2.4). Die offizielle DeepSeek-Doku nennt für V4 „1M context" (<https://api-docs.deepseek.com/news/news260424/>); der Wert ist hier absichtlich kleiner. Die Client-Settings liefern nur Datei-/History-Limits (`file_feature.token_limit`, `normal_history_and_file_token_limit` = 890.880) — sie werden informativ im Tooltip gezeigt und nur übernommen, wenn sie größer als die gesetzte Grenze sind.
+- **Formatierung:** `formatTokens` nutzt **immer** die feste 1-Mio.-Schwelle für „M" — sie darf **nicht** an das Kontextfenster gekoppelt werden (sonst entsteht „1,1M / 1M").
 - **Verwendete Tampermonkey-APIs:** keine (`@grant none`)
 
 ---
@@ -130,15 +131,15 @@ Das Skript verwaltet die Grenze deshalb selbst und passt sie automatisch an:
 |---|---|---|
 | 1 | **Manuell** | `localStorage.setItem('xdsTokenBadge.limitOverride', '2000000')` → feste Grenze; `removeItem` gibt sie frei |
 | 2 | **Gelernt** | Sobald eine Nachricht den Status `CONTEXT_LENGTH_EXCEEDED` hat, gilt der zuletzt gültige Tokenstand als echte Grenze (funktioniert auch bei Verkleinerung des Fensters) |
-| 3 | **Settings** | Nur wenn die App ein Limit **größer** als 1M meldet (dann ist es offensichtlich das Kontextfenster) |
-| 4 | **Standard** | 1.000.000 Token — DeepSeek V4, offizieller „1M-Standard" |
+| 3 | **Settings** | Nur wenn die App ein Limit **größer** als die gesetzte Grenze meldet |
+| 4 | **Standard** | **900.000 Token** — bewusst gesetzte Praxisgrenze (Doku nennt 1 Mio.) |
 
 Zusätzlich merkt sich das Skript den **größten je gesehenen Tokenstand** (`xdsTokenBadge.observedMax`).
 Übersteigt er das angenommene Fenster, wird die Grenze automatisch auf den nächsten 100k-Schritt
 angehoben (untere Schranke), damit die Anzeige nicht dauerhaft über 100 % läuft.
 
 Der Tooltip nennt immer die benutzte Quelle, z. B.
-`Kontext 1.000.000 · DeepSeek V4 (1M) · Datei-Limit 890.880` oder
+`Kontext 900.000 · gesetzt: 900K (Praxisgrenze) · Datei-Limit 890.880` oder
 `Kontext 2.000.000 · manuell gesetzt (localStorage)`.
 
 **Grenze der Automatik:** Ein Abgleich mit der DeepSeek-Dokumentation findet nicht statt (das Skript

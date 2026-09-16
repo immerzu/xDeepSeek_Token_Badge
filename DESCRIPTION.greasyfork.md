@@ -4,7 +4,7 @@ Zeigt den aktuellen Kontext-Füllstand des DeepSeek-Chats als schwebendes Badge 
 
 ## Was macht dieses Skript?
 
-DeepSeek schneidet die ältesten Teile der Konversation ab, sobald der Kontext voll ist. Der Chat „vergisst" dann frühere Details — ohne dass man es merkt. Das Skript rechnet gegen das **Kontextfenster von 1.000.000 Token** (DeepSeek V4, offizieller „1M-Standard").
+DeepSeek schneidet die ältesten Teile der Konversation ab, sobald der Kontext voll ist. Der Chat „vergisst" dann frühere Details — ohne dass man es merkt. Das Skript rechnet gegen eine **Praxisgrenze von 900.000 Token** (bewusst gesetzt; die offizielle Doku nennt für V4 1 Mio.).
 
 **Das Problem:** DeepSeek zeigt nirgends an, wie voll der Kontext gerade ist.
 
@@ -21,7 +21,7 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 ## Features
 
 - 🎯 **Live-Anzeige** — dreistellig gerundete Token (`406K`, `891K`) + Prozent, exakte Werte im Tooltip
-- 📐 **Passende Grenze** — gerechnet wird gegen das V4-Kontextfenster (1 Mio. Token); das Datei-/History-Limit der App (890.880) zeigt der Tooltip zusätzlich
+- 📐 **Passende Grenze** — gerechnet wird gegen die gesetzte Praxisgrenze (900.000 Token); das Datei-/History-Limit der App (890.880) zeigt der Tooltip zusätzlich
 - 🚀 **Null Konfiguration** — installieren und vergessen
 - 🔒 **100 % lokal** — kein Server, keine externen Aufrufe, kein Tracking
 - 🎨 **Dezentes Design** — schwebendes dark glassy Badge, stört die Bedienung nicht

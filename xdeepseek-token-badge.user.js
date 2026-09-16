@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.2.1
+// @version      1.2.4
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -44,12 +44,15 @@
     const SETTINGS_FRAGMENT  = '/client/settings';
     const COMPLETION_FRAGMENT = '/chat/completion';   // SSE-Antwortstrom
     const SHARE_FRAGMENT     = '/share/content';      // geteilte Unterhaltung
-    // Kontextfenster des Modells. DeepSeek V4 hat laut offizieller Doku („1M Standard",
-    // https://api-docs.deepseek.com/news/news260424/) ein Fenster von einer Million Token.
+    // Kontextfenster des Modells. Vom Nutzer bewusst auf 900.000 Token gesetzt (Praxisgrenze).
+    // Hinweis: Die offizielle DeepSeek-Doku nennt für V4 „1M context" (1.000.000,
+    // https://api-docs.deepseek.com/news/news260424/); der Wert ist hier bewusst kleiner gewählt.
     // ACHTUNG: Die Client-Settings melden mit 890.880 nur ein DATEI-/HISTORY-Limit — das ist
-    // NICHT das Kontextfenster und darf den Prozentsatz nicht bestimmen (führte zu >100 %).
-    const CONTEXT_WINDOW = 1000000;
-    const CONTEXT_SOURCE = 'DeepSeek V4 (1M)';
+    // NICHT das Kontextfenster und darf den Prozentsatz nicht bestimmen.
+    // Die Formatierung (formatTokens) nutzt IMMER die feste 1-Mio.-Schwelle für „M", damit
+    // Wert und Grenze nicht in verschiedenen Einheiten erscheinen („1,1M / 1M" war ein Fehler).
+    const CONTEXT_WINDOW = 900000;
+    const CONTEXT_SOURCE = 'gesetzt: 900K (Praxisgrenze)';
     const DEBUG              = false;    // true → Konsolen-Logs aktivieren
     const STORE_KEY          = 'xdsTokenBadge.sessionTokens';
     const POS_KEY            = 'xdsTokenBadge.position';
@@ -471,7 +474,7 @@
     // DeepSeek meldet das Kontextfenster NICHT als Feld. Es gibt aber ein verwertbares Signal:
     // erreicht eine Nachricht den Status CONTEXT_LENGTH_EXCEEDED, war das echte Limit erreicht.
     // Daraus lernt das Skript die Grenze und passt sie bei künftigen Änderungen selbst an.
-    // Priorität: manueller Override > gelernte Grenze > Settings (nur wenn > 1M) > V4-Standard (1M).
+    // Priorität: manueller Override > gelernte Grenze > Settings (nur wenn > 900K) > gesetzte 900K.
     function readJson(key, fallback) {
         try {
             const raw = localStorage.getItem(key);
@@ -684,13 +687,13 @@
         const finite = candidates.filter((v) => Number.isFinite(v) && v > 0);
         fileLimit = finite.length ? Math.max.apply(null, finite) : null;
 
-        // Priorität: Override > gelernt > Settings (nur wenn > 1M) > V4-Standard (1M)
+        // Priorität: Override > gelernt > Settings (nur wenn > 900K) > gesetzte 900K
         const override = overrideLimit();
         let next = CONTEXT_WINDOW;
         let source = CONTEXT_SOURCE;
         if (fileLimit !== null && fileLimit > CONTEXT_WINDOW) {
             next = fileLimit;
-            source = 'DeepSeek-Settings (größer als 1M)';
+            source = 'DeepSeek-Settings (größer als 900K)';
         }
         if (learnedLimit !== null && learnedLimit > 0) {
             next = learnedLimit;
@@ -1085,5 +1088,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.2.1 geladen.');
+    log('xDeepSeek Token Badge v1.2.4 geladen.');
 })();

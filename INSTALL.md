@@ -124,8 +124,10 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
 ### Der Füllstand wirkt falsch (z. B. über 100 %)
 
 Ab **v1.2.0** verwaltet das Skript die Kontextgrenze selbst: Es lernt sie, sobald DeepSeek eine
-Kontext-Überschreitung meldet, hebt sie an, wenn der Tokenstand das angenommene Fenster übersteigt,
-und nennt die benutzte Quelle im Tooltip („Kontext … · Quelle").
+Kontext-Überschreitung meldet, hebt sie an, wenn der Tokenstand die Grenze übersteigt, und nennt die
+benutzte Quelle im Tooltip („Kontext … · Quelle"). Ab **v1.2.4** ist die Standardgrenze bewusst auf
+**900.000 Token** gesetzt (die offizielle Doku nennt für V4 1 Mio.); Werte über der Grenze erscheinen
+weiterhin in derselben Einheit, z. B. `📊 967K / 900K  (107 %)`.
 
 - **Prüfen:** Maus aufs Badge → Zeile `Kontext …` zeigt Wert und Quelle.
 - **Manuell setzen** (falls du das echte Fenster kennst), in der Konsole (`F12`):

@@ -95,8 +95,9 @@ node deepseek-limits.mjs
 
 Erwartet (Stand 2026-09-11): alle Modelle `token_limit = token_limit_with_thinking = 890880`;
 `normal_history_and_file_token_limit = 890880`; `input_character_limit = 2621440`.
-**Achtung:** Diese 890.880 sind **Datei-/History-Limits**, nicht das Kontextfenster — das ist
-**1.000.000** (DeepSeek V4, „1M-Standard"). Siehe Analyse, Abschnitt 10.
+**Achtung:** Diese 890.880 sind **Datei-/History-Limits**, nicht das Kontextfenster. Das Skript rechnet
+seit **v1.2.4** gegen eine **bewusst gesetzte Praxisgrenze von 900.000 Token** (`CONTEXT_WINDOW`; die
+offizielle DeepSeek-Doku nennt für V4 1 Mio.). Siehe Analyse, Abschnitte 10 und 13.
 
 ## Ablauf D — App-Code befragen (login-frei)
 

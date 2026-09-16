@@ -7,6 +7,35 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.2.4] — 2026-09-11
+
+### Behoben
+- **Die Anzeige konnte „1,1M / 1M" zeigen und damit wieder über 100 % liegen.** Ursache: In den
+  Zwischenversionen v1.2.2/v1.2.3 war die **Formatierungs-Schwelle** für „M" an die Kontextgrenze
+  gekoppelt (`if (n >= 900000) … n / 900000 … + 'M'`). Ein Wert von 951.510 wurde dadurch als „1,1M"
+  dargestellt, während die Grenze 900.000 als „1M" erschien.
+  **Fix:** `formatTokens` nutzt **immer** die feste 1-Mio.-Schwelle für „M" — Wert und Grenze
+  erscheinen in derselben Einheit: `📊 952K / 900K  (106 %)`.
+
+### Geändert
+- **Kontextgrenze bewusst auf 900.000 Token gesetzt** (`CONTEXT_WINDOW`), Quelle im Tooltip:
+  `gesetzt: 900K (Praxisgrenze)`. Die offizielle DeepSeek-Doku nennt für V4 1 Mio. — der Wert ist
+  hier absichtlich kleiner gewählt (so gewünscht). Priorität und Lernmechanik bleiben unverändert.
+
+### Verifiziert
+- Rechenbeleg: 951.510 → `952K / 900K (106 %)` · 966.769 → `967K / 900K (107 %)` · 894.000 → `894K / 900K (99 %)`
+- Echter Chat `460a35e7…`: Badge **`📊 967K / 900K  (107 %)`**, Tooltip
+  `Exakt: 966.769 von 900.000 Token (107,42 %)` und
+  `Kontext 900.000 · gesetzt: 900K (Praxisgrenze) · Datei-Limit 890.880`
+- Tooltip-Hover im Debug-Lauf bestätigt (`tipDisplay: block`, `enter: 1`) — der vorherige
+  fehlgeschlagene Hover-Check war ein Testartefakt, kein Skriptfehler
+
+### Hinweis zum Ablauf
+- v1.2.2/v1.2.3 lagen **nur** in `!Ausgabe\` (nicht im Repo, nicht veröffentlicht). Änderungen laufen
+  laut Projektregel immer über die Arbeitsdatei → Commit → Push, damit GF-Sync und Gedächtnis stimmen.
+
+---
+
 ## [1.2.1] — 2026-09-11
 
 ### Hinzugefügt
