@@ -514,6 +514,7 @@ Der Tooltip-Hover wurde per Debug-Lauf zusätzlich bestätigt (`tipDisplay: bloc
 | `dc38948` | v1.1.2 — Kontextfenster 1 Mio. (V4) statt Datei-Limit 890.880 → kein Füllstand > 100 % |
 | `eeb953a` | v1.2.0 — lernfähige Kontextgrenze (Override → gelernt → Settings → 1M) |
 | `7f8c0f4` | v1.2.1 — voller Chat erkannt (`MAX_MESSAGE_COUNT_REACHED`), ⚠-Anzeige, Session-Merker |
+| `f19f0a7` | v1.2.4 — Kontextgrenze bewusst 900K (Nutzerentscheidung) + Formatierungsfehler „1,1M / 1M" behoben |
 
 Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
 Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:

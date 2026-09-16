@@ -38,6 +38,7 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-test-chatfull.mjs` | **Voller Chat (v1.2.1):** simuliert DeepSeeks Hinweis „Nachrichtenlimit erreicht. Bitte starten Sie einen neuen Chat." im DOM und prüft Badge-⚠, Tooltip-Zeile, Speicherung in `xdsTokenBadge.fullSessions` und die Bereinigung. Gibt `FULL:CHECKS` aus. |
 | `deepseek-send-at-limit.mjs` | **Sendeversuch** in einem Chat am Limit (Browser **mit** Extensions/Tampermonkey): protokolliert Requests, konsolen-Logs, Toast-/Hinweistexte und Badge-Zustand. Damit wurde belegt, dass bei 951.568 Token noch akzeptiert wird (`completion` → 200). |
 | `deepseek-limit-notice.mjs` | Sucht Limit-Hinweise in der UI (Buttons, Eingabebereich, Toasts) per MutationObserver — ohne zu senden. |
+| `deepseek-tip-debug.mjs` | **Hover-Diagnose:** prüft, ob der Tooltip beim Hover erscheint — Badge-Rechteck, `elementFromPoint` (liegt ein Overlay darüber?), Event-Zähler (`mouseenter`/`pointermove`) und `display` des Tooltips. Klärte, dass ein fehlgeschlagener UI-Test ein Artefakt war (Tooltip funktioniert). |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
 

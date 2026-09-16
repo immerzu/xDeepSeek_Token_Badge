@@ -80,7 +80,8 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   `deepseek-test-limit.mjs` (prüft die dynamische/lernfähige Kontextgrenze samt Override),
   `deepseek-test-chatfull.mjs` (prüft die Erkennung des vollen Chats),
   `deepseek-send-at-limit.mjs` (Sendeversuch am Limit, mit Extensions/Tampermonkey),
-  `deepseek-limit-notice.mjs` (sucht Limit-Hinweise in der UI).
+  `deepseek-limit-notice.mjs` (sucht Limit-Hinweise in der UI),
+  `deepseek-tip-debug.mjs` (Hover-Diagnose: elementFromPoint, Event-Zähler, Tooltip-display).
   **Ablauf, Befehle und erwartete Checks: `memory/TESTEN-userscript-deepseek.md`**
 - Skills: `greasy-fork-publish`, `userscript-beschreibungen-immerzu`, `github-immerzu`,
   `playwright-browser`, `tampermonkey-install-update`
