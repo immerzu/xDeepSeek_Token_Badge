@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.2.4
+// @version      1.2.5
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -44,15 +44,25 @@
     const SETTINGS_FRAGMENT  = '/client/settings';
     const COMPLETION_FRAGMENT = '/chat/completion';   // SSE-Antwortstrom
     const SHARE_FRAGMENT     = '/share/content';      // geteilte Unterhaltung
-    // Kontextfenster des Modells. Vom Nutzer bewusst auf 900.000 Token gesetzt (Praxisgrenze).
-    // Hinweis: Die offizielle DeepSeek-Doku nennt für V4 „1M context" (1.000.000,
-    // https://api-docs.deepseek.com/news/news260424/); der Wert ist hier bewusst kleiner gewählt.
+    // Kontextfenster des Modells — GEMESSEN am 16.09.2026 (v1.2.5).
+    // Der Server lehnt das Senden ab, sobald „Kontextstand + Promptlänge" 960.000 übersteigt
+    // (SSE-Hinweis mit finish_reason "context_length_exceeded", DE: „Längenbegrenzung erreicht.
+    // Bitte neuen Chat starten."). Das Fenster selbst ist 1.000.000 Token (DeepSeek V4,
+    // „1M context", https://api-docs.deepseek.com/news/news260424/); die Differenz von 40.000
+    // ist die Reserve, die der Server für die Antwort freihält.
+    // Messreihe (jeweils Sendeversuch, HTTP 200, Entscheidung im SSE-Hinweis):
+    //   945.022 + Mini-Prompt  → angenommen      958.918 + Mini-Prompt  → angenommen
+    //   958.963 + ~13.350 Tok. → ABGELEHNT       964.693 + Mini-Prompt  → ABGELEHNT
+    //   966.769 + Mini-Prompt  → ABGELEHNT       984.775 + Mini-Prompt  → ABGELEHNT
+    // WICHTIG: Die Grenze gilt für Kontextstand + Prompt. Ein langer Prompt löst die Meldung
+    // deshalb schon bei niedrigerem Badge-Stand aus — das Badge zeigt nur den Kontextstand
+    // (das war die Ursache der Beobachtung „Meldung kommt schon bei 94 %").
     // ACHTUNG: Die Client-Settings melden mit 890.880 nur ein DATEI-/HISTORY-Limit — das ist
     // NICHT das Kontextfenster und darf den Prozentsatz nicht bestimmen.
     // Die Formatierung (formatTokens) nutzt IMMER die feste 1-Mio.-Schwelle für „M", damit
     // Wert und Grenze nicht in verschiedenen Einheiten erscheinen („1,1M / 1M" war ein Fehler).
-    const CONTEXT_WINDOW = 900000;
-    const CONTEXT_SOURCE = 'gesetzt: 900K (Praxisgrenze)';
+    const CONTEXT_WINDOW = 960000;
+    const CONTEXT_SOURCE = 'gemessen: 960K (Kontextlimit)';
     const DEBUG              = false;    // true → Konsolen-Logs aktivieren
     const STORE_KEY          = 'xdsTokenBadge.sessionTokens';
     const POS_KEY            = 'xdsTokenBadge.position';
@@ -60,10 +70,18 @@
     const LIMIT_KEY          = 'xdsTokenBadge.limit';
     const OVERRIDE_KEY       = 'xdsTokenBadge.limitOverride';
     const OBSERVED_KEY       = 'xdsTokenBadge.observedMax';
-    // DeepSeek meldet einen vollen Chat über den Server-Fehlercode MAX_MESSAGE_COUNT_REACHED
-    // ("hintMaxMessageCount" → DE: "Nachrichtenlimit erreicht. Bitte starten Sie einen neuen Chat.")
+    // DeepSeek lehnt das Senden aus ZWEI verschiedenen Gründen ab — beide führen zu ⚠ im Badge:
+    // 1. Nachrichtenlimit (Anzahl der Nachrichten im Chat): Server-Fehlercode
+    //    MAX_MESSAGE_COUNT_REACHED ("hintMaxMessageCount" → DE: „Nachrichtenlimit erreicht.
+    //    Bitte starten Sie einen neuen Chat.").
+    // 2. Längenbegrenzung (Kontextstand + Prompt > Kontextfenster): SSE-Hinweis mit
+    //    finish_reason "context_length_exceeded" → DE: „Längenbegrenzung erreicht. Bitte neuen
+    //    Chat starten." Die App zeigt dafür zusätzlich am Senden-Button den Tooltip
+    //    „Längenlimit überschritten. Ihre Nachricht wird an einen neuen Chat gesendet."
+    // Der technische Code (context_length_exceeded) ist sprachunabhängig und daher der Anker.
     const FULL_KEY           = 'xdsTokenBadge.fullSessions';
     const CHAT_FULL_RE       = /(Nachrichtenlimit\s+erreicht|Message\s+limit\s+reached|MAX_MESSAGE_COUNT_REACHED|消息数量达到上限)/i;
+    const LENGTH_LIMIT_RE    = /(Längenbegrenzung\s+erreicht|Längengrenze\s+erreicht|Length\s+limit\s+exceeded|context_length_exceeded)/i;
     const REFETCH_DELAY      = 4000;     // ms Mindestabstand zwischen zwei Nachladungen
     // Nach einer Antwort kann der Server den neuen Tokenstand verzögert fortschreiben.
     // Deshalb mehrere Versuche mit wachsendem Abstand (Summe ≈ 35 s).
@@ -427,7 +445,14 @@
                     : 'Aktueller Wert aus der Server-Antwort'),
             `Exakt: ${tokens.toLocaleString()} von ${contextSize.toLocaleString()} Token (${rawPct.toFixed(2).replace('.', ',')} %)`,
             `Kontext ${contextSize.toLocaleString()} · ${contextSource}${fileLimit && fileLimit !== contextSize ? ` · Datei-Limit ${fileLimit.toLocaleString()}` : ''}`,
-            ...(chatFull ? [`⚠ DeepSeek meldet: ${chatFull.text}`] : []),
+            ...(chatFull ? (chatFull.kind === 'length'
+                ? [
+                    '⚠ Längenbegrenzung erreicht — neuer Chat nötig',
+                    Number.isFinite(chatFull.promptTokens)
+                        ? `Kontext ${formatTokens(tokens)} + Prompt ≈ ${formatTokens(chatFull.promptTokens)} > ${formatTokens(contextSize)}`
+                        : `Kontext + Prompt über ${formatTokens(contextSize)}`
+                  ]
+                : [`⚠ DeepSeek meldet: ${chatFull.text}`]) : []),
             ...(isShareView() ? [] : [`Nachladen: ${refreshInfo}`]),
             'Klick fixiert · Doppelklick setzt Position zurück'
         ]);
@@ -474,7 +499,7 @@
     // DeepSeek meldet das Kontextfenster NICHT als Feld. Es gibt aber ein verwertbares Signal:
     // erreicht eine Nachricht den Status CONTEXT_LENGTH_EXCEEDED, war das echte Limit erreicht.
     // Daraus lernt das Skript die Grenze und passt sie bei künftigen Änderungen selbst an.
-    // Priorität: manueller Override > gelernte Grenze > Settings (nur wenn > 900K) > gesetzte 900K.
+    // Priorität: manueller Override > gelernte Grenze > Settings (nur wenn > 960K) > gemessene 960K.
     function readJson(key, fallback) {
         try {
             const raw = localStorage.getItem(key);
@@ -490,8 +515,18 @@
     function loadLearnedLimit() {
         const stored = readJson(LIMIT_KEY, null);
         if (stored && Number.isFinite(stored.value) && stored.value > 0) {
-            learnedLimit = stored.value;
-            learnedSource = stored.source || 'gelernt';
+            // Migration v1.2.5: Grenzen, die nur aus einem hohen Tokenstand ABGELEITET wurden
+            // („aus Beobachtung"), sind nicht belastbar. Ein Stand über der Grenze entsteht,
+            // weil die letzte erlaubte Antwort den Kontext darüber hinaus wachsen lässt —
+            // senden kann man dort nicht mehr. Solche Altwerte (typisch 1.000.000) würden die
+            // gemessenen 960K dauerhaft überschreiben und deshalb verworfen.
+            if (/beobachtung/i.test(String(stored.source || ''))) {
+                console.warn('[TokenBadge] Alte Beobachtungs-Grenze verworfen:', stored.value, '(nicht belastbar)');
+                try { localStorage.removeItem(LIMIT_KEY); } catch (err) { /* ignore */ }
+            } else {
+                learnedLimit = stored.value;
+                learnedSource = stored.source || 'gelernt';
+            }
         }
         const observed = readJson(OBSERVED_KEY, 0);
         if (Number.isFinite(observed) && observed > 0) observedMax = observed;
@@ -502,20 +537,19 @@
         return Number.isFinite(v) && v > 0 ? v : null;
     }
 
-    // Wird bei jedem neuen Tokenstand aufgerufen: merkt den Höchstwert und hebt die Grenze an,
-    // wenn der Serverwert das angenommene Fenster überschreitet (Limit also größer ist als gedacht).
+    // Wird bei jedem neuen Tokenstand aufgerufen: merkt den Höchstwert (nur noch informativ).
     function noteObserved(tokens) {
         if (!Number.isFinite(tokens) || tokens <= observedMax) return;
         observedMax = tokens;
         writeJson(OBSERVED_KEY, observedMax);
         log('Höchstwert beobachtet →', observedMax);
-        if (overrideLimit() === null && tokens > contextSize) {
-            const raised = Math.ceil(tokens / 100000) * 100000;   // auf 100k aufrunden
-            learnedLimit = raised;
-            learnedSource = 'aus Beobachtung (untere Schranke)';
-            writeJson(LIMIT_KEY, { value: raised, source: learnedSource, at: Date.now() });
-            log('Grenze angehoben (Beobachtung) →', raised);
-            updateContextSize();
+        // BEWUSST KEINE Anhebung der Grenze mehr (Änderung in v1.2.5): Ein Tokenstand über der
+        // Grenze beweist KEIN größeres Fenster — die letzte erlaubte Antwort wächst über die
+        // Grenze hinaus (gemessen: 984.775 bei einer Grenze von 960.000; senden ist dort
+        // abgelehnt). Die Grenze stammt jetzt aus der Messung und wird nur noch durch ein
+        // echtes CONTEXT_LENGTH_EXCEEDED (noteContextExceeded) oder einen Override geändert.
+        if (tokens > contextSize) {
+            log('Stand über der Grenze (letzte Antwort wuchs darüber hinaus):', tokens, '>', contextSize);
         }
     }
 
@@ -543,36 +577,62 @@
         } catch (err) { log('exceeded check error', err); }
     }
 
-    // Chat voll (Nachrichtenlimit): DeepSeek lehnt das Senden ab. Das ist UNABHÄNGIG von der
-    // Tokenzahl — die Token-Grenze wird hier bewusst NICHT verändert.
+    // Chat blockiert: DeepSeek lehnt das Senden ab. Zwei Arten (CHAT_FULL_RE / LENGTH_LIMIT_RE):
+    //   'messages' = Nachrichtenlimit (Anzahl der Nachrichten) — unabhängig von der Tokenzahl
+    //   'length'   = Längenbegrenzung (Kontextstand + Prompt > Kontextfenster)
+    // In BEIDEN Fällen bleibt die Kontextgrenze unverändert; nur die Anzeige warnt.
     function loadChatFull(sessionId) {
         if (!sessionId) return null;
         const store = readJson(FULL_KEY, {});
         return store && store[sessionId] ? store[sessionId] : null;
     }
 
-    function noteChatFull(text, sessionId) {
+    function noteChatFull(text, sessionId, info) {
         const sid = sessionId || currentSession;
         if (!sid) return;
-        const entry = { at: Date.now(), text: String(text || '').replace(/\s+/g, ' ').trim().slice(0, 160) };
-        if (chatFull && chatFull.text === entry.text) return;      // schon gemeldet
+        const entry = {
+            at: Date.now(),
+            text: String(text || '').replace(/\s+/g, ' ').trim().slice(0, 160),
+            kind: (info && info.kind) || 'messages',
+        };
+        if (info && Number.isFinite(info.promptTokens) && info.promptTokens > 0) {
+            entry.promptTokens = info.promptTokens;
+        }
+        if (chatFull && chatFull.text === entry.text && chatFull.kind === entry.kind) {
+            // Schon gemeldet. Die Promptgröße kennt nur der Antwortstrom (der DOM-Hinweis nicht)
+            // → sie wird nachgetragen, sobald sie bekannt ist.
+            if (Number.isFinite(entry.promptTokens) && !Number.isFinite(chatFull.promptTokens)) {
+                chatFull.promptTokens = entry.promptTokens;
+                const again = readJson(FULL_KEY, {});
+                if (again[sid] && again[sid].kind === entry.kind) {
+                    again[sid].promptTokens = entry.promptTokens;
+                    writeJson(FULL_KEY, again);
+                }
+                log('Promptgröße nachgetragen →', entry.promptTokens);
+                renderValue(lastValue, lastStale);
+            }
+            return;
+        }
         chatFull = entry;
         const store = readJson(FULL_KEY, {});
         store[sid] = entry;
         const keys = Object.keys(store);
         if (keys.length > 50) for (const k of keys.slice(0, keys.length - 50)) delete store[k];
         writeJson(FULL_KEY, store);
-        console.warn('[TokenBadge] Chat voll gemeldet:', entry.text);
+        console.warn('[TokenBadge] Chat blockiert gemeldet:', entry.kind, entry.text);
         renderValue(lastValue, lastStale);
     }
 
-    // Sucht in einem Antworttext nach dem Fehlercode/Hinweis.
-    function checkChatFullText(text) {
+    // Sucht in einem Antworttext (SSE des completion-Requests) nach beiden Ablehnungsgründen.
+    // Die Längenbegrenzung hat Vorrang — sie ist die inhaltlich genauere Aussage.
+    function checkChatFullText(text, promptTokens) {
         try {
             if (typeof text !== 'string' || !text) return false;
+            const len = text.match(LENGTH_LIMIT_RE);
+            if (len) { noteChatFull(len[0], null, { kind: 'length', promptTokens }); return true; }
             const m = text.match(CHAT_FULL_RE);
             if (!m) return false;
-            noteChatFull(m[0]);
+            noteChatFull(m[0], null, { kind: 'messages', promptTokens });
             return true;
         } catch (err) { log('full check error', err); return false; }
     }
@@ -590,8 +650,10 @@
                             if (el.closest && el.closest('#deepseek-token-badge, #deepseek-token-badge-tip')) continue;
                             const txt = (el.textContent || '').slice(0, 300);
                             if (!txt) continue;
+                            const hitLen = txt.match(LENGTH_LIMIT_RE);
+                            if (hitLen) { noteChatFull(hitLen[0], null, { kind: 'length' }); continue; }
                             const hit = txt.match(CHAT_FULL_RE);
-                            if (hit) noteChatFull(hit[0]);      // nur den Treffer speichern
+                            if (hit) noteChatFull(hit[0], null, { kind: 'messages' });   // nur den Treffer speichern
                         }
                     }
                 });
@@ -687,13 +749,13 @@
         const finite = candidates.filter((v) => Number.isFinite(v) && v > 0);
         fileLimit = finite.length ? Math.max.apply(null, finite) : null;
 
-        // Priorität: Override > gelernt > Settings (nur wenn > 900K) > gesetzte 900K
+        // Priorität: Override > gelernt > Settings (nur wenn > 960K) > gemessene 960K
         const override = overrideLimit();
         let next = CONTEXT_WINDOW;
         let source = CONTEXT_SOURCE;
         if (fileLimit !== null && fileLimit > CONTEXT_WINDOW) {
             next = fileLimit;
-            source = 'DeepSeek-Settings (größer als 900K)';
+            source = 'DeepSeek-Settings (größer als der Standardwert)';
         }
         if (learnedLimit !== null && learnedLimit > 0) {
             next = learnedLimit;
@@ -859,6 +921,27 @@
             const m = body.match(/"chat_session_id"\s*:\s*"([0-9a-fA-F-]{8,})"/);
             return m ? m[1] : null;
         } catch (err) { log('body session error', err); return null; }
+    }
+
+    // Geschätzte Tokenzahl des gesendeten Prompts aus dem Request-Body.
+    // Gemessenes Verhältnis (16.09.2026): 40.044 Zeichen ≈ 13.350 Token ⇒ ~3 Zeichen je Token.
+    // Nur eine Schätzung für den Tooltip-Hinweis — die Kontextgrenze wird davon NICHT berührt.
+    function promptTokensFromBody(body) {
+        try {
+            if (typeof body !== 'string' || !body) return null;
+            let text = null;
+            try {
+                const parsed = JSON.parse(body);
+                if (parsed && typeof parsed.prompt === 'string') text = parsed.prompt;
+            } catch (err) { /* Body evtl. kein reines JSON → Regex-Fallback */ }
+            if (text === null) {
+                const m = body.match(/"prompt"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+                if (!m) return null;
+                text = m[1];
+            }
+            const chars = text.length;
+            return chars > 0 ? Math.round(chars / 3) : null;
+        } catch (err) { log('prompt tokens error', err); return null; }
     }
 
     // Nach dem Ende einer Antwort lädt die App die History NICHT neu — der Tokenstand
@@ -1037,11 +1120,12 @@
             if (reqUrl.includes(COMPLETION_FRAGMENT)) {
                 const self = this;
                 const body = args && args[0];
+                const promptTokens = promptTokensFromBody(body);
                 this.addEventListener('load', function () {
                     try {
                         const sid = sessionIdFromBody(body) || sessionFromLocation() || currentSession;
-                        // Ablehnung wegen vollem Chat (Nachrichtenlimit) erkennen
-                        checkChatFullText(this.responseText);
+                        // Ablehnung erkennen: Nachrichtenlimit ODER Längenbegrenzung (Kontext + Prompt)
+                        checkChatFullText(this.responseText, promptTokens);
                         log('Antwort-Stream beendet → History nachladen', sid);
                         refreshAfterAnswer(sid, self.__tokenbadge_headers);
                     } catch (err) { log('completion hook error', err); }
@@ -1088,5 +1172,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.2.4 geladen.');
+    log('xDeepSeek Token Badge v1.2.5 geladen.');
 })();

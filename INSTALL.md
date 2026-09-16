@@ -111,23 +111,34 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
   stehen, einmal `F5` drücken (dann wird die History neu geladen) und das Skript in Tampermonkey auf
   die neueste Version aktualisieren.
 
-### Meldung „Nachrichtenlimit erreicht" und ein ⚠ am Badge
+### Meldung „Nachrichtenlimit erreicht" / „Längenbegrenzung erreicht" und ein ⚠ am Badge
 
-- Das bedeutet: DeepSeek lehnt weitere Nachrichten in **diesem** Chat ab (Server-Fehlercode
-  `MAX_MESSAGE_COUNT_REACHED`). Ab **v1.2.1** erkennt das Skript das und zeigt es an
-  (Badge `⚠`, Tooltip `⚠ DeepSeek meldet: …`).
-- **Lösung:** einen **neuen Chat** starten. Das Nachrichtenlimit hat nichts mit der Tokenzahl zu tun —
-  der Füllstand kann dabei niedrig oder hoch sein.
+Es gibt **zwei** verschiedene Ablehnungen — beide werden ab v1.2.1/v1.2.5 erkannt und angezeigt
+(Badge `⚠`, Tooltip-Zeile mit dem Hinweis):
+
+1. **Nachrichtenlimit** (Server-Fehlercode `MAX_MESSAGE_COUNT_REACHED`) — DeepSeek lehnt weitere
+   Nachrichten in **diesem** Chat ab, unabhängig von der Tokenzahl.
+2. **Längenbegrenzung** (`finish_reason: context_length_exceeded`) — **Kontextstand + Prompt** passen
+   nicht mehr ins Fenster (960.000). Der Tooltip nennt zusätzlich die geschätzte Promptgröße.
+
+- **Lösung in beiden Fällen:** einen **neuen Chat** starten. Beim Nachrichtenlimit kann der Füllstand
+  dabei niedrig oder hoch sein; bei der Längenbegrenzung hilft es, den Prompt zu kürzen.
 - Den Merker zurücksetzen (z. B. nachdem du im Chat aufgeräumt hast):
   `localStorage.removeItem('xdsTokenBadge.fullSessions')` in der Konsole (`F12`).
 
 ### Der Füllstand wirkt falsch (z. B. über 100 %)
 
 Ab **v1.2.0** verwaltet das Skript die Kontextgrenze selbst: Es lernt sie, sobald DeepSeek eine
-Kontext-Überschreitung meldet, hebt sie an, wenn der Tokenstand die Grenze übersteigt, und nennt die
-benutzte Quelle im Tooltip („Kontext … · Quelle"). Ab **v1.2.4** ist die Standardgrenze bewusst auf
-**900.000 Token** gesetzt (die offizielle Doku nennt für V4 1 Mio.); Werte über der Grenze erscheinen
-weiterhin in derselben Einheit, z. B. `📊 967K / 900K  (107 %)`.
+Kontext-Überschreitung meldet, und nennt die benutzte Quelle im Tooltip („Kontext … · Quelle").
+Ab **v1.2.5** ist die Standardgrenze **gemessen: 960.000 Token** (Kontextfenster 1 Mio. abzüglich der
+Reserve, die der Server für die Antwort freihält). Werte über der Grenze erscheinen in derselben
+Einheit, z. B. `📊 967K / 960K  (101 %)`.
+
+> **Warum die Meldung „schon bei 94 %" kommen kann:** Die Grenze gilt für **Kontextstand + Prompt**.
+> Das Badge zeigt aber nur den Kontextstand. Ein langer Prompt (z. B. 20.000 Token Übergabetext) löst
+> die Längenbegrenzung deshalb bei einem niedrigeren Badge-Wert aus: 945.022 (94,5 %) + 20.000
+> ≈ 965.000 > 960.000 → abgelehnt. Mit einem kurzen Prompt wird bei 958.918 (95,9 %) noch gesendet,
+> ab 964.693 (96,5 %) nicht mehr. Das ist kein Fehler des Badges.
 
 - **Prüfen:** Maus aufs Badge → Zeile `Kontext …` zeigt Wert und Quelle.
 - **Manuell setzen** (falls du das echte Fenster kennst), in der Konsole (`F12`):

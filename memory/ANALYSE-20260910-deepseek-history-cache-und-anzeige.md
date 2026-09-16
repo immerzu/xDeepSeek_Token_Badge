@@ -423,6 +423,7 @@ unsinnige Einheiten. Beleg per Rechnung:
 
 **Entscheidungen (mit dem Nutzer geklärt):** Die **900.000 bleiben** (bewusste Praxisgrenze; die
 offizielle Doku nennt für V4 1 Mio.). Der Fehler war die **Formatierung**, nicht die Grenze.
+*(In v1.2.5 durch die Messung auf 960.000 korrigiert — siehe Abschnitt 14.)*
 
 **Fix (v1.2.4):**
 
@@ -447,22 +448,97 @@ Der Tooltip-Hover wurde per Debug-Lauf zusätzlich bestätigt (`tipDisplay: bloc
 - **Änderungen immer über das Repo** (Arbeitsdatei → Commit → Push → GF-Sync). Versionen nur im
   `!Ausgabe\`-Ordner sind für niemanden nachvollziehbar und laufen dem Gedächtnis/GF-Stand davon.
 
-## 14. Wichtige Codeanker (für künftige Änderungen)
+## 14. Nachtrag v1.2.5 — Grenze **gemessen**: 960.000 (Kontext + Prompt) und Längenbegrenzung erkannt
+
+**Frage des Nutzers:** „Die Meldungen kamen jetzt immer schon bei 94 %. Dass das Chatfenster voll ist.
+Deshalb habe ich manuell heruntergesetzt. Überprüfe den Wert von 94 %."
+
+**Messung 1 — Bestandsaufnahme aller Chats** (`deepseek-limit94.mjs`, 30 Chats des Accounts):
+höchster Stand **984.775**, danach 978.087 / 974.279 / 966.769 / 964.693 / 960.122 / 958.918 …
+Kein Chat über 985.000. Alle Nachrichten-Status sind `FINISHED` bzw. `INCOMPLETE` — **kein**
+`CONTEXT_LENGTH_EXCEEDED` in irgendeiner History.
+
+**Messung 2 — Binärsuche per Sendeversuch** (`deepseek-probe-limit.mjs`; HTTP immer 200, die
+Entscheidung steckt im SSE-Strom):
+
+| Kontextstand | Prompt | Ergebnis |
+|---|---|---|
+| 945.022 | Mini | ✅ angenommen |
+| 958.918 | Mini | ✅ angenommen |
+| **958.963** | **~13.350 Token (40.044 Zeichen)** | ❌ abgelehnt |
+| 964.693 | Mini | ❌ abgelehnt |
+| 966.769 | Mini | ❌ abgelehnt |
+| 984.775 | Mini | ❌ abgelehnt |
+
+**Der entscheidende Satz aus der Serverantwort** (identisch in allen Ablehnungen):
+
+```
+event: hint
+data: {"type":"error","content":"Längenbegrenzung erreicht. Bitte neuen Chat starten.",
+       "clear_response":true,"finish_reason":"context_length_exceeded"}
+event: close
+data: {"click_behavior":"none","auto_resume":false}
+```
+
+**Ergebnis:** Alle sechs Punkte sind mit **einer** Regel konsistent:
+`Kontextstand + Promptlänge > 960.000` → Ablehnung (Fenster 1.000.000 laut Doku − 40.000 Antwort-Reserve).
+
+**Damit ist die 94-%-Beobachtung erklärt:** Das Badge zeigt nur den **Kontextstand**, die Grenze gilt
+aber für **Kontext + Prompt**. Bei 945.022 (94,5 %) + einem 20K-Prompt ist man bei ~965.000 → Meldung.
+Bei 94,5 % mit **kurzem** Prompt wird anstandslos gesendet (gemessen ✅). Die 94 % waren also kein
+Grenzwert, sondern der Arbeitsbereich der großen Chats.
+
+**Zweiter Befund — das Skript kannte die Meldung nicht:** `CHAT_FULL_RE` deckte nur
+`MAX_MESSAGE_COUNT_REACHED` (Nachrichtenanzahl) ab. Die Längenbegrenzung (`context_length_exceeded`,
+DE „Längenbegrenzung erreicht…", Client-Tooltip am Senden-Button: „Längenlimit überschritten. Ihre
+Nachricht wird an einen neuen Chat gesendet.") lief **ohne** ⚠ und ohne Tooltip-Zeile durch.
+Bundles-Beleg: `02-main.…js` (`x7.MAX_MESSAGE_COUNT_REACHED → hintMaxMessageCount`) und
+`06-17047.…js` (`chatInputNewChatButtonTooltip`).
+
+**Fix (v1.2.5):**
+
+1. `CONTEXT_WINDOW = 960000`, `CONTEXT_SOURCE = 'gemessen: 960K (Kontextlimit)'`; Settings-Limit wird
+   nur noch übernommen, wenn es **größer** als 960K ist.
+2. Neue `LENGTH_LIMIT_RE` (Anker `context_length_exceeded`, sprachunabhängig) — geprüft im
+   SSE-Antwortstrom (`checkChatFullText`) **und** im DOM-Beobachter. Beide Ablehnungsarten setzen `⚠`;
+   der Merker trägt `kind: 'messages' | 'length'`. Tooltip bei Länge — **zwei kurze Zeilen**, weil
+   eine lange Zeile umbrach (gemessen `wraps: 1` bei 85 Zeichen in 441 px):
+   `⚠ Längenbegrenzung erreicht — neuer Chat nötig` und
+   `Kontext 967K + Prompt ≈ 13K > 960K`.
+3. `promptTokensFromBody()` schätzt die Promptgröße aus dem Request-Body (gemessen ~3 Zeichen/Token).
+4. **`noteObserved` hebt die Grenze nicht mehr an** — ein Stand über der Grenze ist kein Beweis für ein
+   größeres Fenster (984.775 bei Grenze 960.000). Stattdessen Migration: Lerngrenzen mit der Quelle
+   „aus Beobachtung" (typisch 1.000.000) werden beim Laden **verworfen**, sonst überschreiben sie die
+   gemessene Grenze dauerhaft.
+
+**Verifikation** (`deepseek-verify-lengthlimit.mjs`, lokale Datei injiziert, Extensions aus):
+Nenner `960K` ✓ · Badge vorher ohne ⚠ ✓ · nach erzwungener Ablehnung `📊 ⚠ 967K / 960K  (101 %)` ✓ ·
+Tooltip-Zeile mit `(Prompt ≈ 3K Token)` ✓ · Merker
+`{"460a35e7…":{"text":"Längenbegrenzung erreicht","kind":"length","promptTokens":3014}}` ✓ ·
+nur ein Badge ✓. **Fallstrick dabei:** Der DOM-Beobachter feuert vor dem Antwortstrom und kennt die
+Promptgröße nicht — sie wird nachgetragen, sobald sie bekannt ist (sonst fehlt sie im Tooltip).
+
+**Stand der Veröffentlichung:** v1.2.5 liegt **nur im Repo** (Commit lokal, **kein Push** → GF-Sync
+zieht nichts); Greasy Fork führt weiter v1.2.4. So vom Nutzer gewünscht.
+
+## 15. Wichtige Codeanker (für künftige Änderungen)
 
 | Zweck | Wert |
 |---|---|
 | Kontextgrenze (Tokenstand) | `accumulated_token_usage` in `data.biz_data.chat_messages[]` |
 | Tokenstand (geteilter Chat) | `accumulated_token_usage` in `data.biz_data.messages[]` — Endpunkt `GET /api/v0/share/content?share_id=…` |
-| Kontextgrenze (Limit) | **bewusst 900.000 Token** (`CONTEXT_WINDOW`, v1.2.4; Doku nennt 1 Mio.). `model_configs[].file_feature.token_limit(_with_thinking)` und `normal_history_and_file_token_limit` = 890.880 sind nur **Datei-/History-Limits** |
+| Kontextgrenze (Limit) | **960.000 Token — gemessen** (`CONTEXT_WINDOW`, v1.2.5): Ablehnung, sobald Kontextstand + Promptlänge 960.000 übersteigt (Fenster 1 Mio. − 40.000 Reserve). `model_configs[].file_feature.token_limit(_with_thinking)` und `normal_history_and_file_token_limit` = 890.880 sind nur **Datei-/History-Limits** |
+| Ablehnung: Nachrichtenlimit | Fehlercode `MAX_MESSAGE_COUNT_REACHED` → i18n `hintMaxMessageCount` |
+| Ablehnung: Länge | SSE-Hinweis `finish_reason: "context_length_exceeded"`, DE „Längenbegrenzung erreicht. Bitte neuen Chat starten."; Client-Tooltip `chatInputNewChatButtonTooltip` |
 | Einheiten-Formatierung | `formatTokens`: „M" **nur** ab der festen Schwelle 1.000.000 — nicht an `CONTEXT_WINDOW` koppeln (sonst „1,1M / 1M") |
 | Endpunkt History | `GET /api/v0/chat/history_messages?chat_session_id=…[&cache_version=…&cache_reset_at=…]` |
 | Endpunkt Settings | `GET /api/v0/client/settings?did=…&scope=model\|main` |
 | Cache-Steuerung | `biz_data.cache_control`: `REPLACE` (voll) / `MERGE` (Deltas) |
 | Client-Cache | IndexedDB `history-message` (`version`, `cacheResetAt`, `data.chat_messages`) |
 | Netzwerkweg | `XMLHttpRequest` (fetch nur Absicherung) |
-| Merker | `localStorage.xdsTokenBadge.sessionTokens` |
+| Merker | `localStorage.xdsTokenBadge.sessionTokens`, `…fullSessions` (`kind`), `…observedMax`, `…limit`, `…limitOverride` |
 
-## 15. Umgebungs-Erkenntnisse (wiederverwendbar)
+## 16. Umgebungs-Erkenntnisse (wiederverwendbar)
 
 - **GF-Auto-Sync ist NICHT webhook-basiert:** kein GitHub-Hook im Repo
   (`gh api repos/immerzu/xDeepSeek_Token_Badge/hooks` → leer) → GF zieht periodisch.
@@ -484,7 +560,7 @@ Der Tooltip-Hover wurde per Debug-Lauf zusätzlich bestätigt (`tipDisplay: bloc
 - **Meine Fehlspur:** Ein TM-Check über `GM_info` / `script[src*=tampermonkey]` ist untauglich
   (beides existiert so nicht) — er meldete fälschlich „kein TM".
 
-## 16. Offene Punkte
+## 17. Offene Punkte
 
 - [ ] Aktiven **Zweig** statt Maximum zählen (parent_id-Kette + `currentChildIndex`).
 - [ ] **Datei-Tokens** berücksichtigen (App addiert `getFilesTokenCount`).
@@ -493,7 +569,7 @@ Der Tooltip-Hover wurde per Debug-Lauf zusätzlich bestätigt (`tipDisplay: bloc
 - [ ] Optional: Wert aus SSE-Deltas (`/api/v0/chat/completion`) mitlesen → live statt nur beim Load.
 - [ ] Optional: GF-Tags (`deepseek`, `token`, `context`, `badge`, `chat`) im GF-UI ergänzen.
 
-## 17. Commits dieser Session
+## 18. Commits dieser Session
 
 | Commit | Inhalt |
 |---|---|
@@ -515,6 +591,8 @@ Der Tooltip-Hover wurde per Debug-Lauf zusätzlich bestätigt (`tipDisplay: bloc
 | `eeb953a` | v1.2.0 — lernfähige Kontextgrenze (Override → gelernt → Settings → 1M) |
 | `7f8c0f4` | v1.2.1 — voller Chat erkannt (`MAX_MESSAGE_COUNT_REACHED`), ⚠-Anzeige, Session-Merker |
 | `f19f0a7` | v1.2.4 — Kontextgrenze bewusst 900K (Nutzerentscheidung) + Formatierungsfehler „1,1M / 1M" behoben |
+| `e916238` | Memory: v1.2.4 nachgetragen |
+| *(dieser Commit)* | v1.2.5 — Grenze **gemessen** 960K (Kontext + Prompt), Längenbegrenzung erkannt, Beobachtungs-Anhebung entfernt (nur Repo, kein Push) |
 
 Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
 Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:

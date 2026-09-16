@@ -7,6 +7,60 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.2.5] — 2026-09-16
+
+### Behoben
+- **Die Meldung „Längenbegrenzung erreicht" wurde vom Skript nicht erkannt.** Das Skript kannte
+  bisher nur das **Nachrichtenlimit** (`MAX_MESSAGE_COUNT_REACHED`). Lehnt DeepSeek das Senden wegen
+  zu großer Länge ab, sendet der Server im SSE-Strom des `completion`-Requests:
+  `{"type":"error","content":"Längenbegrenzung erreicht. Bitte neuen Chat starten.","finish_reason":"context_length_exceeded"}`.
+  Es erschien **kein** ⚠ und **keine** Tooltip-Zeile.
+  **Fix:** Neue Erkennung `LENGTH_LIMIT_RE` (Anker: der sprachunabhängige Code
+  `context_length_exceeded`, dazu DE/EN-Texte) — im Antwortstrom **und** im DOM-Beobachter.
+  Badge zeigt `⚠`, der Tooltip zwei Zeilen:
+  `⚠ Längenbegrenzung erreicht — neuer Chat nötig` und
+  `Kontext 967K + Prompt ≈ 13K > 960K`. Die Promptgröße wird aus dem Request-Body geschätzt
+  (gemessen: ~3 Zeichen je Token).
+
+### Geändert
+- **Kontextgrenze von 900.000 auf 960.000 Token korrigiert — jetzt gemessen statt gesetzt.**
+  Quelle im Tooltip: `gemessen: 960K (Kontextlimit)`.
+  Der Server lehnt das Senden ab, sobald **Kontextstand + Promptlänge** 960.000 übersteigt
+  (Fenster 1.000.000 laut DeepSeek-Doku abzüglich 40.000 Antwort-Reserve).
+- **`noteObserved` hebt die Grenze nicht mehr an.** Ein Tokenstand über der Grenze beweist kein
+  größeres Fenster: Die letzte erlaubte Antwort wächst über die Grenze hinaus (gemessen 984.775 bei
+  Grenze 960.000 — senden ist dort abgelehnt). Die Grenze ändert nur noch ein echtes
+  `CONTEXT_LENGTH_EXCEEDED` oder ein manueller Override.
+- **Migration:** Alte, per Beobachtung gesetzte Lerngrenzen (`xdsTokenBadge.limit` mit Quelle
+  „aus Beobachtung", typisch 1.000.000) werden beim Laden **verworfen**, sonst würden sie die
+  gemessenen 960K dauerhaft überschreiben.
+
+### Messreihe (16.09.2026, echter Account, je ein Sendeversuch)
+| Chat-Stand | Prompt | Bewertung | Ergebnis |
+|---|---|---|---|
+| 945.022 | Mini | 94,50 % von 1M | ✅ angenommen |
+| 958.918 | Mini | 95,89 % | ✅ angenommen |
+| **958.963** | **~13.350 Token** | 95,90 % | ❌ `context_length_exceeded` |
+| 964.693 | Mini | 96,47 % | ❌ abgelehnt |
+| 966.769 | Mini | 96,68 % | ❌ abgelehnt |
+| 984.775 | Mini | 98,48 % | ❌ abgelehnt |
+
+Alle sechs Punkte sind mit **einer** Regel konsistent: `Kontextstand + Prompt > 960.000` → Ablehnung.
+**Damit ist die Beobachtung „die Meldung kommt schon bei 94 %" erklärt:** Das Badge zeigt nur den
+Kontextstand; ein langer Prompt (z. B. 20K Token Übergabetext) verschiebt die Grenze entsprechend
+nach unten. 94 % war kein Grenzwert — bei 94,5 % mit kurzem Prompt wird anstandslos gesendet.
+
+### Verifiziert
+- Sendeversuche siehe Tabelle (HTTP 200 mit SSE-Hinweis, kein HTTP-Fehler).
+- Live-Test mit injizierter v1.2.5 im echten Chat (`deepseek-verify-lengthlimit.mjs`):
+  Nenner `960K`, ⚠ im Badge, Tooltip-Zeile, Merker in `xdsTokenBadge.fullSessions` mit `kind: "length"`.
+
+### Hinweis zum Ablauf
+- v1.2.5 liegt zunächst **nur im Repo** (kein Push, kein Greasy-Fork-Sync) — so gewünscht.
+  Greasy Fork führt weiterhin v1.2.4.
+
+---
+
 ## [1.2.4] — 2026-09-11
 
 ### Behoben

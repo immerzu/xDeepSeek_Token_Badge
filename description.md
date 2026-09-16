@@ -1,6 +1,6 @@
 Zeigt den aktuellen Kontext-Füllstand des DeepSeek-Chats als schwebendes Badge an — kompakt, live und ohne Server.
 
-DeepSeek schneidet die ältesten Teile der Konversation ab, sobald der Kontext voll ist: Der Chat „vergisst" frühere Details, ohne dass man es merkt. DeepSeek zeigt nirgends an, wie voll der Kontext gerade ist — das Skript rechnet gegen eine **Praxisgrenze von 900.000 Token** (bewusst gesetzt; die offizielle DeepSeek-Doku nennt für V4 1 Mio.).
+DeepSeek schneidet die ältesten Teile der Konversation ab, sobald der Kontext voll ist: Der Chat „vergisst" frühere Details, ohne dass man es merkt. DeepSeek zeigt nirgends an, wie voll der Kontext gerade ist — das Skript rechnet gegen die **gemessene Grenze von 960.000 Token** (Kontextfenster 1 Mio. abzüglich der Reserve, die der Server für die Antwort freihält).
 
 Es liest die ohnehin übertragene `accumulated_token_usage` aus den Chat-History-Antworten und zeigt sie als Badge unten rechts an:
 
@@ -13,14 +13,14 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 **Features**
 
 - Live-Anzeige — dreistellig gerundete Token (`406K`, `891K`) plus Prozent, exakte Werte im Tooltip
-- Passende Grenze — gerechnet wird gegen die gesetzte Praxisgrenze (900.000 Token); das Datei-/History-Limit der App (890.880) steht zusätzlich im Tooltip
+- Passende Grenze — gerechnet wird gegen die gemessene Kontextgrenze (960.000 Token); das Datei-/History-Limit der App (890.880) steht zusätzlich im Tooltip
 - Null Konfiguration — installieren und vergessen
 - 100 % lokal — kein Server, keine externen Aufrufe, kein Tracking
 - Verschiebbar — das Badge lässt sich mit der Maus an jede Stelle ziehen; die Position bleibt erhalten, Doppelklick setzt es zurück
 - Detailanzeige — Tooltip mit exaktem Wert, Kontextgrenze und Nachlade-Status; er bleibt beim Drücken von Tasten stehen (screenshot-freundlich), verschwindet bei Mausbewegung und lässt sich per Klick fixieren
 - Auch in geteilten Chats — bei `chat.deepseek.com/share/…` wird der Füllstand des geteilten Verlaufs angezeigt (Stand zum Zeitpunkt des Teilens)
 - Lernfähige Grenze — erkennt eine Kontext-Überschreitung (`CONTEXT_LENGTH_EXCEEDED`) und passt den Nenner automatisch an; manuell überschreibbar über `localStorage.xdsTokenBadge.limitOverride`
-- Voller Chat wird markiert — meldet DeepSeek „Nachrichtenlimit erreicht", zeigt das Badge ein ⚠ und der Tooltip den Hinweis
+- Blockierter Chat wird markiert — meldet DeepSeek „Nachrichtenlimit erreicht" oder „Längenbegrenzung erreicht" (Kontext + Prompt zu groß), zeigt das Badge ein ⚠ und der Tooltip den Hinweis samt geschätzter Promptgröße
 - Reload-fest — merkt sich den letzten Wert je Chat (mit `~` markiert, bis der Serverwert kommt)
 
 **Bedienung**
@@ -47,7 +47,7 @@ Das Skript sendet keine Daten irgendwohin. Es liest ausschließlich die API-Antw
 
 Показывает текущий уровень заполнения контекстного окна в веб-чате DeepSeek в виде плавающего значка — компактно, в реальном времени и без сервера.
 
-DeepSeek отбрасывает самые старые части переписки, когда контекст заполнен: чат «забывает» прежние детали, и это происходит незаметно. При этом DeepSeek нигде не показывает, насколько контекст уже заполнен — скрипт считает от практической границы **900 000 токенов** (задана вручную; официальная документация DeepSeek указывает для V4 1 млн).
+DeepSeek отбрасывает самые старые части переписки, когда контекст заполнен: чат «забывает» прежние детали, и это происходит незаметно. При этом DeepSeek нигде не показывает, насколько контекст уже заполнен — скрипт считает от **измеренной границы 960 000 токенов** (окно контекста 1 млн минус резерв, который сервер оставляет для ответа).
 
 Скрипт читает поле `accumulated_token_usage`, которое и так передаётся в ответах истории чата, и показывает его в виде значка в правом нижнем углу:
 
@@ -60,7 +60,7 @@ DeepSeek отбрасывает самые старые части перепи�
 **Возможности**
 
 - Показ в реальном времени — токены, округлённые до трёх знаков (`406K`, `891K`), и проценты; точные значения в подсказке
-- Подходящая граница — расчёт идёт от контекстного окна V4 (1 млн токенов); лимит файлов/истории приложения (890 880) дополнительно показан в подсказке
+- Подходящая граница — расчёт идёт от измеренной границы контекста (960 000 токенов); лимит файлов/истории приложения (890 880) дополнительно показан в подсказке
 - Без настройки — установить и забыть
 - 100 % локально — без сервера, без внешних запросов, без отслеживания
 - Перетаскивание — значок можно перетащить мышью в любое место; положение сохраняется, двойной щелчок возвращает его назад
@@ -94,7 +94,7 @@ DeepSeek отбрасывает самые старые части перепи�
 
 Shows the current context window usage of the DeepSeek web chat as a floating badge — compact, live and serverless.
 
-DeepSeek truncates the oldest parts of the conversation once the context is full: the chat "forgets" earlier details without you noticing. DeepSeek never shows how full the context currently is — the script measures against a **practical limit of 900,000 tokens** (set deliberately; DeepSeek's own docs state 1M for V4).
+DeepSeek truncates the oldest parts of the conversation once the context is full: the chat "forgets" earlier details without you noticing. DeepSeek never shows how full the context currently is — the script measures against the **measured limit of 960,000 tokens** (1M context window minus the reserve the server keeps for the answer).
 
 This script reads the `accumulated_token_usage` field that is transmitted anyway in the chat history responses and displays it as a badge in the bottom right corner:
 
@@ -107,7 +107,7 @@ That way you can see at a glance when it is time to start a new chat.
 **Features**
 
 - Live display — tokens rounded to three digits (`406K`, `891K`) plus percent, exact values in the tooltip
-- Matching limit — it measures against the V4 context window (1M tokens); the app's file/history limit (890,880) is shown in the tooltip as well
+- Matching limit — it measures against the measured context limit (960,000 tokens); the app's file/history limit (890,880) is shown in the tooltip as well
 - Zero configuration — install and forget
 - 100 % local — no server, no external calls, no tracking
 - Draggable — the badge can be dragged anywhere with the mouse; the position is remembered, a double-click moves it back
