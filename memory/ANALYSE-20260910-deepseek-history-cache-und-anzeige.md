@@ -518,8 +518,11 @@ Tooltip-Zeile mit `(Prompt ≈ 3K Token)` ✓ · Merker
 nur ein Badge ✓. **Fallstrick dabei:** Der DOM-Beobachter feuert vor dem Antwortstrom und kennt die
 Promptgröße nicht — sie wird nachgetragen, sobald sie bekannt ist (sonst fehlt sie im Tooltip).
 
-**Stand der Veröffentlichung:** v1.2.5 liegt **nur im Repo** (Commit lokal, **kein Push** → GF-Sync
-zieht nichts); Greasy Fork führt weiter v1.2.4. So vom Nutzer gewünscht.
+**Stand der Veröffentlichung:** v1.2.5 ist am 16.09.2026 veröffentlicht — Push (`ba0175d`) plus
+`gf-admin-sync.mjs`; Greasy Fork meldet `version 1.2.5`, `code_updated 16.09.2026 10:47`. Der
+GF-Code wurde gegengeprüft (`CONTEXT_WINDOW = 960000`, `LENGTH_LIMIT_RE`, `promptTokensFromBody`,
+`context_length_exceeded` vorhanden; **kein** `900000` mehr), ebenso die Zusatzinfos in allen drei
+Sprachen (960.000 / 960 000 / 960,000).
 
 ## 15. Wichtige Codeanker (für künftige Änderungen)
 

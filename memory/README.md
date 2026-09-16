@@ -13,9 +13,10 @@ Dieser Ordner ist das dauerhafte Gedächtnis des Projekts. **Vor** Arbeiten am S
 
 ## Kurzfassung des aktuellen Stands
 
-- Skript **v1.2.5** liegt im Repo (Commits lokal; Greasy Fork führt weiter **v1.2.4** —
-  v1.2.5 wurde bewusst noch **nicht** gepusht/gesynct, `https://greasyfork.org/de/scripts/595207.json`),
-  Quelle ist `main/xdeepseek-token-badge.user.js`, Auto-Sync (periodisch, **kein Webhook**).
+- Skript **v1.2.5** ist auf Greasy Fork **live** (`https://greasyfork.org/de/scripts/595207.json`
+  → `version 1.2.5`, `code_updated 16.09.2026 10:47`), Quelle ist `main/xdeepseek-token-badge.user.js`,
+  Auto-Sync (periodisch, **kein Webhook**). Veröffentlicht am 16.09.2026 (Commit `ba0175d` gepusht +
+  `gf-admin-sync.mjs`).
 - Badge zeigt dreistellig gerundet: `📊 967K / 960K  (101 %)`; Details im **eigenen Tooltip**
   (exakter Wert, Grenze + Quelle + Datei-Limit, Nachlade-Status).
 - **Blockierter Chat (⚠)** — DeepSeek lehnt aus **zwei** Gründen ab:

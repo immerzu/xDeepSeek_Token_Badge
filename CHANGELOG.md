@@ -56,8 +56,10 @@ nach unten. 94 % war kein Grenzwert — bei 94,5 % mit kurzem Prompt wird anstan
   Nenner `960K`, ⚠ im Badge, Tooltip-Zeile, Merker in `xdsTokenBadge.fullSessions` mit `kind: "length"`.
 
 ### Hinweis zum Ablauf
-- v1.2.5 liegt zunächst **nur im Repo** (kein Push, kein Greasy-Fork-Sync) — so gewünscht.
-  Greasy Fork führt weiterhin v1.2.4.
+- v1.2.5 wurde zunächst **nur im Repo** gebaut (kein Push, kein Greasy-Fork-Sync) und am 16.09.2026
+  auf Wunsch veröffentlicht: Push `ba0175d` + `gf-admin-sync.mjs`. Greasy Fork meldet
+  `version 1.2.5` (`code_updated 16.09.2026 10:47`); der GF-Code und die Zusatzinfos in DE/RU/EN
+  wurden gegengeprüft.
 
 ---
 
