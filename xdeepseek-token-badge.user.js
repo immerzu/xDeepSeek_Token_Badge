@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.2.6
+// @version      1.2.7
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -65,6 +65,9 @@
     // Wert und Grenze nicht in verschiedenen Einheiten erscheinen („1,1M / 1M" war ein Fehler).
     const CONTEXT_WINDOW = 962000;
     const CONTEXT_SOURCE = 'gemessen: 962K (Kontextlimit)';
+    // Ab diesem Füllstand wird die Prozentangabe im Badge rot (Warnung vor dem Kontextlimit).
+    const PCT_WARN = 90;
+    const PCT_WARN_COLOR = '#ff5252';
     const DEBUG              = false;    // true → Konsolen-Logs aktivieren
     const STORE_KEY          = 'xdsTokenBadge.sessionTokens';
     const POS_KEY            = 'xdsTokenBadge.position';
@@ -438,7 +441,14 @@
         const rawPct = tokens / contextSize * 100;
         const pct = rawPct > 0 && rawPct < 1 ? '<1' : String(Math.round(rawPct));
         const warn = chatFull ? '⚠ ' : '';
-        el.textContent = `📊 ${warn}${stale ? '~' : ''}${formatTokens(tokens)} / ${formatTokens(contextSize)}  (${pct} %)`;
+        // Prozentangabe ab 90 % Füllstand rot: eigener Span, damit NUR die Zahl rot wird
+        // (Badge-Breite bleibt gleich — kein Fettdruck, keine Layout-Änderung).
+        el.textContent = `📊 ${warn}${stale ? '~' : ''}${formatTokens(tokens)} / ${formatTokens(contextSize)}  `;
+        const pctEl = document.createElement('span');
+        pctEl.className = 'xds-tokenbadge-pct';
+        pctEl.textContent = `(${pct} %)`;
+        pctEl.style.color = rawPct >= PCT_WARN ? PCT_WARN_COLOR : 'inherit';
+        el.appendChild(pctEl);
         setTip([
             isShareView()
                 ? 'Geteilte Unterhaltung — Stand zum Zeitpunkt des Teilens'
@@ -1175,5 +1185,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.2.6 geladen.');
+    log('xDeepSeek Token Badge v1.2.7 geladen.');
 })();

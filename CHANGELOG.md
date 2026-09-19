@@ -7,6 +7,22 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.2.7] — 2026-09-16
+
+### Neu
+- **Die Prozentangabe im Badge wird ab 90 % Füllstand rot.** Die Prozentzahl sitzt jetzt in einem
+  eigenen Element (`span.xds-tokenbadge-pct`); ab `PCT_WARN = 90` ist sie `#ff5252`, darunter bleibt
+  sie weiß. Bewusst **ohne** Fettdruck und ohne Breitenänderung, damit das Badge exakt gleich groß
+  bleibt. Der Badge-Gesamttext (und damit alle Tests/Anzeigen) bleibt unverändert lesbar:
+  `📊 867K / 962K  (90 %)` — nur die Klammer-Angabe wechselt die Farbe.
+
+### Verifiziert
+- `deepseek-test-pctcolor.mjs` steuert den Prozentsatz über `xdsTokenBadge.limitOverride` und liest
+  die berechnete Farbe: 48 % weiß · **89 % weiß** · **91 % rot** · 100 % rot · Override entfernt → rot.
+  Geprüft wird `getComputedStyle(span).color` (rot = `rgb(255, 82, 82)`).
+
+---
+
 ## [1.2.6] — 2026-09-16
 
 ### Behoben

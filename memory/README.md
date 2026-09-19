@@ -17,7 +17,7 @@ Dieser Ordner ist das dauerhafte Gedächtnis des Projekts. **Vor** Arbeiten am S
   16.09.2026 auf Greasy Fork live (`version 1.2.5`, `code_updated 16.09.2026 10:47`, Commit `ba0175d`
   + `gf-admin-sync.mjs`), wurde aber durch die Feinmessung der Kante überholt.
   Quelle ist `main/xdeepseek-token-badge.user.js`, Auto-Sync (periodisch, **kein Webhook**).
-- Badge zeigt dreistellig gerundet: `📊 967K / 962K  (101 %)`; Details im **eigenen Tooltip**
+- Badge zeigt dreistellig gerundet: `📊 967K / 962K  (101 %)`; **ab 90 % Füllstand ist die Prozentangabe rot** (`PCT_WARN`, `#ff5252`); Details im **eigenen Tooltip**
   (exakter Wert, Grenze + Quelle + Datei-Limit, Nachlade-Status).
 - **Blockierter Chat (⚠)** — DeepSeek lehnt aus **zwei** Gründen ab:
   1. **Nachrichtenlimit** (Anzahl): `MAX_MESSAGE_COUNT_REACHED` / „Nachrichtenlimit erreicht…"

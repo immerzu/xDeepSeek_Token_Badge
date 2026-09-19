@@ -27,7 +27,7 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 
 ## Features
 
-- 🎯 **Live-Anzeige** des aktuellen Token-Füllstands (dreistellig gerundet + Prozent, exakt im Tooltip)
+- 🎯 **Live-Anzeige** des aktuellen Token-Füllstands (dreistellig gerundet + Prozent, exakt im Tooltip) — **ab 90 % wird die Prozentangabe rot**
 - 📐 **Passende Grenze** — gerechnet wird gegen die gemessene Kontextgrenze (962.000 Token); das Datei-/History-Limit der App (890.880) zeigt der Tooltip zusätzlich
 - 🚀 **Null Konfiguration** — installieren, fertig
 - 🔒 **Lokal & sicher** — kein Server, keine externen Aufrufe, kein Tracking

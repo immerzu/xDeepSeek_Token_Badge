@@ -12,7 +12,7 @@ So siehst du auf einen Blick, ob du bald einen neuen Chat starten solltest.
 
 **Features**
 
-- Live-Anzeige — dreistellig gerundete Token (`406K`, `891K`) plus Prozent, exakte Werte im Tooltip
+- Live-Anzeige — dreistellig gerundete Token (`406K`, `891K`) plus Prozent, exakte Werte im Tooltip; **ab 90 % Füllstand wird die Prozentangabe rot**
 - Passende Grenze — gerechnet wird gegen die gemessene Kontextgrenze (962.000 Token); das Datei-/History-Limit der App (890.880) steht zusätzlich im Tooltip
 - Null Konfiguration — installieren und vergessen
 - 100 % lokal — kein Server, keine externen Aufrufe, kein Tracking
@@ -106,7 +106,7 @@ That way you can see at a glance when it is time to start a new chat.
 
 **Features**
 
-- Live display — tokens rounded to three digits (`406K`, `891K`) plus percent, exact values in the tooltip
+- Live display — tokens rounded to three digits (`406K`, `891K`) plus percent, exact values in the tooltip; **from 90 % the percentage turns red**
 - Matching limit — it measures against the measured context limit (962,000 tokens); the app's file/history limit (890,880) is shown in the tooltip as well
 - Zero configuration — install and forget
 - 100 % local — no server, no external calls, no tracking

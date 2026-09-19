@@ -60,6 +60,14 @@ Nach der Installation erscheint oben rechts im Browser ein kleines Tampermonkey-
 4. Unten rechts im Fenster erscheint das Badge:
    - Zuerst `📊 --` (noch keine Daten)
    - Nach dem ersten History-Load: `📊 406K / 891K  (46 %)` o. ä. (dreistellig gerundet)
+   - **Ab 90 % Füllstand wird die Prozentangabe rot** — dann wird es Zeit für einen neuen Chat:
+
+     ```
+     📊 867K / 962K  (90 %)      ← Prozent in Rot
+     ```
+
+     Die Tokenwerte selbst bleiben weiß; nur die Klammer-Angabe wechselt die Farbe
+     (kein Fettdruck, die Badge-Breite ändert sich dadurch nicht).
 
 ---
 

@@ -191,7 +191,10 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   Fallstrick aus der Praxis: `pointerdown` darf den Pin **nicht** auf `false` setzen — sonst kann
   jeder Klick nur fixieren und nie lösen (der Toggle im `pointerup` kippt dann immer auf `true`).
 - **Anzeige-Konvention:** dreistellig gerundet (`📊 217K / 891K  (24 %)`), Prozent ganzzahlig
-  (`<1 %` unter 1 %), exakte Werte und Grenzquelle im Tooltip.
+  (`<1 %` unter 1 %), exakte Werte und Grenzquelle im Tooltip. **Ab 90 % Füllstand ist die
+  Prozentangabe rot** (`PCT_WARN`, `#ff5252`, eigenes Element `span.xds-tokenbadge-pct`) —
+  bewusst ohne Fettdruck und ohne Breitenänderung. Wer die Badge-Ausgabe ändert, muss den Span
+  erhalten (Tests lesen `badge.textContent`; nur die Farbe des Spans wechselt).
 - **Modell-Selbstauskünfte im Chat sind keine Messwerte:** Zeilen wie `[ 76% von 100% gefüllt]`
   schreibt das Modell selbst in seinen Denkblock (Feld `fragments` der Nachricht) — sie überschätzen
   den echten Füllstand stark (gemessen: 76 % behauptet vs. 20,61 % laut Server). Verlässlich ist nur

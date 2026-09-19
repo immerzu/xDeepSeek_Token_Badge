@@ -42,6 +42,7 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-limit94.mjs` | **Bestandsaufnahme (v1.2.5):** listet **alle** Chats des Accounts (`chat_session/fetch_page`) und lädt je Chat die History → Tabelle `id \| msgs \| tokenMax \| %900K \| %1M \| %1.024K \| %1Mi \| Titel`, sortiert nach Tokenstand. Zeigt zusätzlich `xdsTokenBadge.fullSessions`, `limit`, `observedMax`. Damit wurde der höchste Stand (984.775) und die Grenzregion gefunden. `DS_MAX` (Anzahl Chats). |
 | `deepseek-probe-limit.mjs` | **Sendeversuch in EINEM Chat (v1.2.5):** schreibt den Kontextstand mit, sendet eine Mini-Nachricht und protokolliert HTTP-Status **und den SSE-Body** der `completion`-Antwort → `context_length_exceeded` = abgelehnt, sonst angenommen. `DS_URL`, `DS_MSG`, `DS_WAIT`; mit **`DS_FILL=<Zeichen>`** wird ein langer Prompt per nativem Setter eingesetzt (statt Tippen). Damit wurde die Grenze auf 962.000 eingegrenzt. Achtung: Bei Annahme landet die Nachricht **echt** im Chat; Ablehnungen sind spurlos (`clear_response: true`). Zwei URL-Wächter brechen ab (`PROBE:ABBRUCH`), wenn ein anderer Prozess den Tab wegnavigiert — im Profil `_profil-v90` kann parallel ein weiterer Playwright-Browser laufen. |
 | `deepseek-probe-newchat.mjs` | **Zerstörungsfreie Grenzprüfung (v1.2.5):** öffnet mehrere Chats (`DS_URLS` = Komma-Liste) und liest Badge, Buttons und Hinweistexte, dazu die Auslöse-Logik aus den geladenen JS-Chunks. Sendet **nichts**. |
+| `deepseek-test-pctcolor.mjs` | **Rotfärbung der Prozentangabe (v1.2.7):** injiziert die lokale Datei, steuert den Prozentsatz über `xdsTokenBadge.limitOverride` und liest `getComputedStyle` des Spans `.xds-tokenbadge-pct`. Erwartung: 48 % weiß · 89 % weiß · 91 % rot · 100 % rot · Override entfernt → rot; rot = `rgb(255, 82, 82)`. Gibt `PCT:ERGEBNIS` aus. |
 | `deepseek-verify-lengthlimit.mjs` | **v1.2.6-Volltest:** startet das Profil **ohne** Extensions und injiziert die lokale `.user.js`; öffnet einen Chat über der Grenze, erzwingt per Mini- bzw. Langtext-Sendung (`DS_VLL_FILL`) die Längenbegrenzung und prüft Nenner `962K`, `⚠` im Badge, Tooltip-Zeile mit Promptschätzung und den Merker `kind: "length"`. Gibt `VLL:CHECKS` aus. |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
@@ -194,7 +195,7 @@ Invoke-RestMethod "https://greasyfork.org/de/scripts/595207.json" | Select-Objec
   ein Log `fetch → …` bedeutet, dass der fetch-Pfad greift (kommt derzeit nicht vor).
 - **Debug-Kopien** liegen in `%TEMP%` und werden **nicht** committet; die Release-Datei bleibt ohne
   DEBUG-Spam (nur Metablock-Version und Doku ändern sich).
-- **Badge-Format** ist Konvention: dreistellig gerundet (`192K / 891K`), Prozent ganzzahlig
+- **Badge-Format** ist Konvention: dreistellig gerundet (`192K / 891K`), Prozent ganzzahlig, **ab 90 % ist die Prozentangabe rot** (eigener Span, kein Fettdruck, Breite unverändert)
   (`<1 %` unter 1 %), exakte Werte im Tooltip.
 - **`DS_SCRIPT` leer lassen heißt: kein Refetch.** Bei warmem Cache liefert der Server dann nur
   `MERGE` mit **0 Nachrichten** → der Report enthält keine Nachrichtendaten (genau dieser Fehler ist
