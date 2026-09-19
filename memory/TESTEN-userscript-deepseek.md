@@ -40,9 +40,9 @@ zu belasten. Alle Werkzeuge liegen in `C:\Users\lolo\.dsh\browser-tools\` (dort 
 | `deepseek-limit-notice.mjs` | Sucht Limit-Hinweise in der UI (Buttons, Eingabebereich, Toasts) per MutationObserver — ohne zu senden. |
 | `deepseek-tip-debug.mjs` | **Hover-Diagnose:** prüft, ob der Tooltip beim Hover erscheint — Badge-Rechteck, `elementFromPoint` (liegt ein Overlay darüber?), Event-Zähler (`mouseenter`/`pointermove`) und `display` des Tooltips. Klärte, dass ein fehlgeschlagener UI-Test ein Artefakt war (Tooltip funktioniert). |
 | `deepseek-limit94.mjs` | **Bestandsaufnahme (v1.2.5):** listet **alle** Chats des Accounts (`chat_session/fetch_page`) und lädt je Chat die History → Tabelle `id \| msgs \| tokenMax \| %900K \| %1M \| %1.024K \| %1Mi \| Titel`, sortiert nach Tokenstand. Zeigt zusätzlich `xdsTokenBadge.fullSessions`, `limit`, `observedMax`. Damit wurde der höchste Stand (984.775) und die Grenzregion gefunden. `DS_MAX` (Anzahl Chats). |
-| `deepseek-probe-limit.mjs` | **Sendeversuch in EINEM Chat (v1.2.5):** schreibt den Kontextstand mit, sendet eine Mini-Nachricht und protokolliert HTTP-Status **und den SSE-Body** der `completion`-Antwort → `context_length_exceeded` = abgelehnt, sonst angenommen. `DS_URL`, `DS_MSG`, `DS_WAIT`; mit **`DS_FILL=<Zeichen>`** wird ein langer Prompt per nativem Setter eingesetzt (statt Tippen). Damit wurde die Grenze auf 960.000 eingegrenzt. Achtung: Bei Annahme landet die Nachricht **echt** im Chat; Ablehnungen sind spurlos (`clear_response: true`). |
+| `deepseek-probe-limit.mjs` | **Sendeversuch in EINEM Chat (v1.2.5):** schreibt den Kontextstand mit, sendet eine Mini-Nachricht und protokolliert HTTP-Status **und den SSE-Body** der `completion`-Antwort → `context_length_exceeded` = abgelehnt, sonst angenommen. `DS_URL`, `DS_MSG`, `DS_WAIT`; mit **`DS_FILL=<Zeichen>`** wird ein langer Prompt per nativem Setter eingesetzt (statt Tippen). Damit wurde die Grenze auf 962.000 eingegrenzt. Achtung: Bei Annahme landet die Nachricht **echt** im Chat; Ablehnungen sind spurlos (`clear_response: true`). Zwei URL-Wächter brechen ab (`PROBE:ABBRUCH`), wenn ein anderer Prozess den Tab wegnavigiert — im Profil `_profil-v90` kann parallel ein weiterer Playwright-Browser laufen. |
 | `deepseek-probe-newchat.mjs` | **Zerstörungsfreie Grenzprüfung (v1.2.5):** öffnet mehrere Chats (`DS_URLS` = Komma-Liste) und liest Badge, Buttons und Hinweistexte, dazu die Auslöse-Logik aus den geladenen JS-Chunks. Sendet **nichts**. |
-| `deepseek-verify-lengthlimit.mjs` | **v1.2.5-Volltest:** startet das Profil **ohne** Extensions und injiziert die lokale `.user.js`; öffnet einen Chat über der Grenze, erzwingt per Mini- bzw. Langtext-Sendung (`DS_VLL_FILL`) die Längenbegrenzung und prüft Nenner `960K`, `⚠` im Badge, Tooltip-Zeile mit Promptschätzung und den Merker `kind: "length"`. Gibt `VLL:CHECKS` aus. |
+| `deepseek-verify-lengthlimit.mjs` | **v1.2.6-Volltest:** startet das Profil **ohne** Extensions und injiziert die lokale `.user.js`; öffnet einen Chat über der Grenze, erzwingt per Mini- bzw. Langtext-Sendung (`DS_VLL_FILL`) die Längenbegrenzung und prüft Nenner `962K`, `⚠` im Badge, Tooltip-Zeile mit Promptschätzung und den Merker `kind: "length"`. Gibt `VLL:CHECKS` aus. |
 
 ## Ablauf A — Skriptänderung verifizieren (Standard)
 
@@ -101,9 +101,9 @@ node deepseek-limits.mjs
 Erwartet (Stand 2026-09-11): alle Modelle `token_limit = token_limit_with_thinking = 890880`;
 `normal_history_and_file_token_limit = 890880`; `input_character_limit = 2621440`.
 **Achtung:** Diese 890.880 sind **Datei-/History-Limits**, nicht das Kontextfenster. Das Skript rechnet
-seit **v1.2.5** gegen die **gemessene Grenze von 960.000 Token** (`CONTEXT_WINDOW`): Der Server lehnt
-das Senden ab, sobald **Kontextstand + Promptlänge** 960.000 übersteigt (Fenster 1 Mio. laut Doku
-− 40.000 Antwort-Reserve). Messreihe und Herleitung: Analyse, Abschnitt 14; die 900K-Setzung aus v1.2.4
+seit **v1.2.5** gegen die **gemessene Grenze von 962.000 Token** (`CONTEXT_WINDOW`): Der Server lehnt
+das Senden ab, sobald **Kontextstand + Promptlänge** 962.000 übersteigt (Fenster 1 Mio. laut Doku
+− 38.000 Antwort-Reserve). Messreihe und Herleitung: Analyse, Abschnitt 14; die 900K-Setzung aus v1.2.4
 dort in Abschnitt 13.
 
 ## Ablauf D — App-Code befragen (login-frei)

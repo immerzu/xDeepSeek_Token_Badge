@@ -519,18 +519,68 @@ nur ein Badge ✓. **Fallstrick dabei:** Der DOM-Beobachter feuert vor dem Antwo
 Promptgröße nicht — sie wird nachgetragen, sobald sie bekannt ist (sonst fehlt sie im Tooltip).
 
 **Stand der Veröffentlichung:** v1.2.5 ist am 16.09.2026 veröffentlicht — Push (`ba0175d`) plus
-`gf-admin-sync.mjs`; Greasy Fork meldet `version 1.2.5`, `code_updated 16.09.2026 10:47`. Der
+`gf-admin-sync.mjs`; Greasy Fork meldete `version 1.2.5`, `code_updated 16.09.2026 10:47`. Der
 GF-Code wurde gegengeprüft (`CONTEXT_WINDOW = 960000`, `LENGTH_LIMIT_RE`, `promptTokensFromBody`,
 `context_length_exceeded` vorhanden; **kein** `900000` mehr), ebenso die Zusatzinfos in allen drei
-Sprachen (960.000 / 960 000 / 960,000).
+Sprachen (960.000 / 960 000 / 960,000). **Durch Abschnitt 15 überholt** (Grenze war 2.000 zu niedrig).
 
-## 15. Wichtige Codeanker (für künftige Änderungen)
+## 15. Nachtrag v1.2.6 — Kante fein gemessen: **962.000** (nicht 960.000)
+
+**Auftrag des Nutzers:** „Teste die Grenze" — mit dem Chat
+`b934bbb2-8724-4107-b8ec-f22794efe367`.
+
+**Ausgangslage:** Der Chat stand bei 951.172 Token; ein Mini-Prompt wurde angenommen. Die in v1.2.5
+angesetzte Grenze (960.000 = Fenster 1 Mio. − **geschätzte** 40.000 Reserve) war damit **nicht belegt** —
+die Reserve war eine Annahme.
+
+**Vorgehen:** `deepseek-probe-limit.mjs` mit `DS_FILL` (Fülltext) — jeder Versuch ist ein echtes Senden,
+die Entscheidung steht im SSE-Strom. Abgelehnte Versuche sind spurlos (`clear_response: true`).
+
+| Kontextstand | Prompt | Summe | Ergebnis |
+|---|---|---|---|
+| 951.549 | 30.042 Zeichen (≈ 8.015 Tok.) | ≈ 959.564 | ✅ angenommen |
+| 959.584 | 743 Zeichen (≈ 210 Tok.) | ≈ 959.794 | ✅ angenommen |
+| 959.813 | 3.043 Zeichen (≈ 825 Tok.) | ≈ 960.638 | ✅ angenommen |
+| 960.657 | 9.043 Zeichen (≈ 2.450 Tok.) | ≈ 963.107 | ❌ abgelehnt |
+| 960.657 | 2.043 Zeichen (≈ 557 Tok.) | ≈ 961.214 | ✅ angenommen |
+| 961.233 | 3.343 Zeichen (≈ 916 Tok.) | **≈ 962.149** | ❌ **abgelehnt** |
+| 961.233 | 1.643 Zeichen (≈ 450 Tok.) | ≈ 961.683 | ✅ angenommen |
+| 961.703 | 843 Zeichen (≈ 230 Tok.) | **≈ 961.933** | ✅ **angenommen** |
+
+**Ergebnis:** Die Kante liegt zwischen **961.933 (oberste bestätigte Annahme)** und
+**962.149 (unterste bestätigte Ablehnung)** ⇒ **962.000** (Fenster 1 Mio. − 38.000 Antwort-Reserve).
+v1.2.5 hatte 960.000 gesetzt — der Messfehler kam aus der **geschätzten** Reserve, die prompt als
+Messwert behandelt wurde. **Lehre:** Eine Reserve/ein Puffer ist keine Messung; die Kante muss per
+Sendeversuch eingegrenzt werden (der Chat ist danach ggf. am Limit und muss neu gestartet werden).
+
+**Zweiter Befund — Promptschätzung war ~20 % zu hoch.** Aus den Zuwächsen des `accumulated_token_usage`
+nach angenommenen Versuchen ergibt sich rund **3,6 Zeichen je Token** (843 ≈ 230 · 3.043 ≈ 825 ·
+30.042 ≈ 8.015), nicht 3,0. `promptTokensFromBody` teilt seit v1.2.6 durch 3,6.
+
+**Nebenbefund (Testhygiene):** Während der Messung arbeitete ein **anderer Prozess im selben
+Playwright-Profil** (Tab auf Google wegnavigiert, `BDS:AUTO:SEARCH`-Aktivität, fremde Nachrichten im
+Chat) → ein Lauf schrieb den Fülltext in ein fremdes Feld und war unbrauchbar. `deepseek-probe-limit.mjs`
+hat jetzt **zwei URL-Wächter** (nach dem Laden und unmittelbar vor dem Tippen): Stimmt die Chat-ID nicht,
+bricht das Werkzeug mit `PROBE:ABBRUCH` ab, statt still falsch zu messen. Vor Testläufen prüfen, ob
+weitere Playwright-Browser mit `_profil-v90` laufen.
+
+**Fix (v1.2.6):** `CONTEXT_WINDOW = 962000`, `CONTEXT_SOURCE = 'gemessen: 962K (Kontextlimit)'`,
+Promptschätzung 3,6 Zeichen/Token.
+
+**Verifikation** (`deepseek-verify-lengthlimit.mjs`, Chat `b934bbb2…`, Stand 961.955):
+Badge vorher `📊 962K / 962K  (100 %)` · nach dem abgelehnten Versuch `📊 ⚠ 962K / 962K  (100 %)` ·
+Tooltip `Kontext 962.000 · gemessen: 962K (Kontextlimit) · Datei-Limit 890.880`,
+`⚠ Längenbegrenzung erreicht — neuer Chat nötig`, `Kontext 962K + Prompt ≈ 291 > 962K` ·
+Merker `{"b934bbb2…":{"text":"Längenbegrenzung erreicht","kind":"length","promptTokens":291}}` ·
+`wraps: 0` (5 → 7 Zeilen, kein Umbruch) · nur ein Badge.
+
+## 16. Wichtige Codeanker (für künftige Änderungen)
 
 | Zweck | Wert |
 |---|---|
 | Kontextgrenze (Tokenstand) | `accumulated_token_usage` in `data.biz_data.chat_messages[]` |
 | Tokenstand (geteilter Chat) | `accumulated_token_usage` in `data.biz_data.messages[]` — Endpunkt `GET /api/v0/share/content?share_id=…` |
-| Kontextgrenze (Limit) | **960.000 Token — gemessen** (`CONTEXT_WINDOW`, v1.2.5): Ablehnung, sobald Kontextstand + Promptlänge 960.000 übersteigt (Fenster 1 Mio. − 40.000 Reserve). `model_configs[].file_feature.token_limit(_with_thinking)` und `normal_history_and_file_token_limit` = 890.880 sind nur **Datei-/History-Limits** |
+| Kontextgrenze (Limit) | **962.000 Token — gemessen** (`CONTEXT_WINDOW`, v1.2.6): Ablehnung, sobald Kontextstand + Promptlänge 962.000 übersteigt (Fenster 1 Mio. − 38.000 Reserve); Kante belegt zwischen 961.933 ✅ und 962.149 ❌ (Abschnitt 15). `model_configs[].file_feature.token_limit(_with_thinking)` und `normal_history_and_file_token_limit` = 890.880 sind nur **Datei-/History-Limits** |
 | Ablehnung: Nachrichtenlimit | Fehlercode `MAX_MESSAGE_COUNT_REACHED` → i18n `hintMaxMessageCount` |
 | Ablehnung: Länge | SSE-Hinweis `finish_reason: "context_length_exceeded"`, DE „Längenbegrenzung erreicht. Bitte neuen Chat starten."; Client-Tooltip `chatInputNewChatButtonTooltip` |
 | Einheiten-Formatierung | `formatTokens`: „M" **nur** ab der festen Schwelle 1.000.000 — nicht an `CONTEXT_WINDOW` koppeln (sonst „1,1M / 1M") |
@@ -541,7 +591,7 @@ Sprachen (960.000 / 960 000 / 960,000).
 | Netzwerkweg | `XMLHttpRequest` (fetch nur Absicherung) |
 | Merker | `localStorage.xdsTokenBadge.sessionTokens`, `…fullSessions` (`kind`), `…observedMax`, `…limit`, `…limitOverride` |
 
-## 16. Umgebungs-Erkenntnisse (wiederverwendbar)
+## 17. Umgebungs-Erkenntnisse (wiederverwendbar)
 
 - **GF-Auto-Sync ist NICHT webhook-basiert:** kein GitHub-Hook im Repo
   (`gh api repos/immerzu/xDeepSeek_Token_Badge/hooks` → leer) → GF zieht periodisch.
@@ -563,7 +613,7 @@ Sprachen (960.000 / 960 000 / 960,000).
 - **Meine Fehlspur:** Ein TM-Check über `GM_info` / `script[src*=tampermonkey]` ist untauglich
   (beides existiert so nicht) — er meldete fälschlich „kein TM".
 
-## 17. Offene Punkte
+## 18. Offene Punkte
 
 - [ ] Aktiven **Zweig** statt Maximum zählen (parent_id-Kette + `currentChildIndex`).
 - [ ] **Datei-Tokens** berücksichtigen (App addiert `getFilesTokenCount`).
@@ -572,7 +622,7 @@ Sprachen (960.000 / 960 000 / 960,000).
 - [ ] Optional: Wert aus SSE-Deltas (`/api/v0/chat/completion`) mitlesen → live statt nur beim Load.
 - [ ] Optional: GF-Tags (`deepseek`, `token`, `context`, `badge`, `chat`) im GF-UI ergänzen.
 
-## 18. Commits dieser Session
+## 19. Commits dieser Session
 
 | Commit | Inhalt |
 |---|---|
@@ -596,6 +646,8 @@ Sprachen (960.000 / 960 000 / 960,000).
 | `f19f0a7` | v1.2.4 — Kontextgrenze bewusst 900K (Nutzerentscheidung) + Formatierungsfehler „1,1M / 1M" behoben |
 | `e916238` | Memory: v1.2.4 nachgetragen |
 | `52232ee` | v1.2.5 — Grenze **gemessen** 960K (Kontext + Prompt), Längenbegrenzung erkannt, Beobachtungs-Anhebung entfernt (nur Repo, kein Push) |
+| `96699c1` | Memory: v1.2.5 veröffentlicht (Greasy Fork 1.2.5, GF-Code und Zusatzinfos geprüft) |
+| *(dieser Commit)* | v1.2.6 — Kante fein gemessen: **962.000** statt 960.000; Promptschätzung 3,6 Zeichen/Token; URL-Wächter im Messwerkzeug |
 
 Zusätzliche Diagnose-Werkzeuge aus dieser Session: `deepseek-open-chat.mjs` (einzelnen Chat öffnen,
 Badge prüfen, Fenster offen halten) und `deepseek-analyze-context.mjs` (Chat-Tiefenanalyse:

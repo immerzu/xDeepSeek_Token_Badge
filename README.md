@@ -11,7 +11,7 @@ Ein Tampermonkey-Userscript, das den aktuellen **Kontext-Füllstand** des DeepSe
 
 ## Was macht dieses Skript?
 
-DeepSeek schneidet den ältesten Teil der Konversation ab, sobald der Kontext voll ist — der Chat „vergisst" frühere Details. Das Problem: DeepSeek zeigt nirgendwo an, **wie voll** das Fenster gerade ist. Das Skript rechnet deshalb gegen eine **gemessene Grenze von 960.000 Token** (Kontextfenster 1 Mio. abzüglich 40.000 Antwort-Reserve; siehe „Kontextfenster" unten).
+DeepSeek schneidet den ältesten Teil der Konversation ab, sobald der Kontext voll ist — der Chat „vergisst" frühere Details. Das Problem: DeepSeek zeigt nirgendwo an, **wie voll** das Fenster gerade ist. Das Skript rechnet deshalb gegen eine **gemessene Grenze von 962.000 Token** (Kontextfenster 1 Mio. abzüglich 38.000 Antwort-Reserve; siehe „Kontextfenster" unten).
 
 Dieses Skript fängt die API-Antworten des DeepSeek-Web-Chats ab, liest das Feld `accumulated_token_usage` daraus und zeigt es als kleines Badge unten rechts an:
 
@@ -28,7 +28,7 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 ## Features
 
 - 🎯 **Live-Anzeige** des aktuellen Token-Füllstands (dreistellig gerundet + Prozent, exakt im Tooltip)
-- 📐 **Passende Grenze** — gerechnet wird gegen die gemessene Kontextgrenze (960.000 Token); das Datei-/History-Limit der App (890.880) zeigt der Tooltip zusätzlich
+- 📐 **Passende Grenze** — gerechnet wird gegen die gemessene Kontextgrenze (962.000 Token); das Datei-/History-Limit der App (890.880) zeigt der Tooltip zusätzlich
 - 🚀 **Null Konfiguration** — installieren, fertig
 - 🔒 **Lokal & sicher** — kein Server, keine externen Aufrufe, kein Tracking
 - 🖱️ **Verschiebbar** — mit der Maus an jede Stelle ziehen; Position bleibt erhalten, Doppelklick setzt das Badge zurück
@@ -76,7 +76,7 @@ Der Nutzer sieht so auf einen Blick, wann er einen neuen Chat starten sollte, um
 - **Ziel-Endpunkte:** `*/chat/history_messages` (Tokenstand), `*/client/settings` (Kontextgrenze), `*/chat/completion` (Ende des Antwort-Streams → Nachladen auslösen), `*/share/content` (geteilte Unterhaltung)
 - **Ausgelesenes Feld:** `data.biz_data.chat_messages[].accumulated_token_usage` (in der Share-Ansicht `data.biz_data.messages[].accumulated_token_usage`)
 - **Angezeigter Wert:** Maximum der `accumulated_token_usage`-Werte; bei `cache_control: MERGE` wird die History einmalig ohne Cache-Parameter nachgeladen
-- **Kontextfenster:** **960.000 Token** — **gemessen** am 16.09.2026 (`CONTEXT_WINDOW`, v1.2.5). Das Fenster selbst sind 1.000.000 Token (offizielle DeepSeek-Doku für V4 „1M context", <https://api-docs.deepseek.com/news/news260424/>); der Server lehnt das Senden ab, sobald **Kontextstand + Promptlänge** 960.000 übersteigt — die Differenz von 40.000 ist die Reserve, die er für die Antwort freihält. Messreihe: 945.022 + Mini-Prompt ✅ · 958.918 + Mini-Prompt ✅ · **958.963 + ~13.350-Token-Prompt ❌** · 964.693 ❌ · 966.769 ❌ · 984.775 ❌. Die Client-Settings liefern nur Datei-/History-Limits (`file_feature.token_limit`, `normal_history_and_file_token_limit` = 890.880) — sie werden informativ im Tooltip gezeigt und nur übernommen, wenn sie größer als die Grenze sind.
+- **Kontextfenster:** **962.000 Token** — **gemessen** am 16.09.2026 (`CONTEXT_WINDOW`, v1.2.5). Das Fenster selbst sind 1.000.000 Token (offizielle DeepSeek-Doku für V4 „1M context", <https://api-docs.deepseek.com/news/news260424/>); der Server lehnt das Senden ab, sobald **Kontextstand + Promptlänge** 962.000 übersteigt — die Differenz von 40.000 ist die Reserve, die er für die Antwort freihält. Messreihe: 945.022 + Mini-Prompt ✅ · 958.918 + Mini-Prompt ✅ · **958.963 + ~13.350-Token-Prompt ❌** · 964.693 ❌ · 966.769 ❌ · 984.775 ❌. Die Client-Settings liefern nur Datei-/History-Limits (`file_feature.token_limit`, `normal_history_and_file_token_limit` = 890.880) — sie werden informativ im Tooltip gezeigt und nur übernommen, wenn sie größer als die Grenze sind.
 - **Zwei Ablehnungsgründe:** *Nachrichtenlimit* (`MAX_MESSAGE_COUNT_REACHED`) und *Längenbegrenzung* (`finish_reason: context_length_exceeded`, DE „Längenbegrenzung erreicht. Bitte neuen Chat starten."). Beide zeigen `⚠` im Badge und eine Zeile im Tooltip; bei der Längenbegrenzung wird zusätzlich die geschätzte Promptgröße genannt (~3 Zeichen je Token).
 - **Formatierung:** `formatTokens` nutzt **immer** die feste 1-Mio.-Schwelle für „M" — sie darf **nicht** an das Kontextfenster gekoppelt werden (sonst entsteht „1,1M / 1M").
 - **Verwendete Tampermonkey-APIs:** keine (`@grant none`)
@@ -121,10 +121,10 @@ wird an einen neuen Chat gesendet."
 
 Anzeige in beiden Fällen:
 
-- Badge: `📊 ⚠ 967K / 960K  (101 %)`
+- Badge: `📊 ⚠ 967K / 962K  (101 %)`
 - Tooltip (Nachrichtenlimit): `⚠ DeepSeek meldet: Nachrichtenlimit erreicht`
 - Tooltip (Längenbegrenzung): `⚠ Längenbegrenzung erreicht — neuer Chat nötig` und
-  `Kontext 967K + Prompt ≈ 13K > 960K` (zwei Zeilen, damit nichts umbricht)
+  `Kontext 967K + Prompt ≈ 13K > 962K` (zwei Zeilen, damit nichts umbricht)
 
 Der Zustand wird pro Chat gemerkt (`xdsTokenBadge.fullSessions`, mit `kind: "messages" | "length"`);
 ein neuer Chat startet ohne Warnung.
@@ -132,7 +132,7 @@ ein neuer Chat startet ohne Warnung.
 **Wichtig — warum die Warnung „schon bei 94 %" erscheinen kann:** Die Längengrenze gilt für
 **Kontextstand + Promptlänge**. Das Badge zeigt aber nur den Kontextstand. Ein langer Prompt
 (z. B. ein 20K-Token-Übergabetext) löst die Meldung deshalb bei einem niedrigeren Badge-Wert aus:
-945.022 (94,5 %) + 20.000 ≈ 965.000 > 960.000 → abgelehnt, obwohl das Badge 94 % zeigt.
+945.022 (94,5 %) + 20.000 ≈ 965.000 > 962.000 → abgelehnt, obwohl das Badge 94 % zeigt.
 Gemessen: Mit **Mini-Prompt** wird bei 958.918 (95,9 %) noch gesendet, ab 964.693 (96,5 %) nicht mehr.
 
 Das Nachrichtenlimit ist dagegen **unabhängig** von der Tokenzahl — es ändert die Kontextgrenze nicht.
@@ -149,15 +149,15 @@ Das Skript verwaltet die Grenze deshalb selbst und passt sie automatisch an:
 | 1 | **Manuell** | `localStorage.setItem('xdsTokenBadge.limitOverride', '2000000')` → feste Grenze; `removeItem` gibt sie frei |
 | 2 | **Gelernt** | Sobald eine Nachricht den Status `CONTEXT_LENGTH_EXCEEDED` hat, gilt der zuletzt gültige Tokenstand als echte Grenze (funktioniert auch bei Verkleinerung des Fensters) |
 | 3 | **Settings** | Nur wenn die App ein Limit **größer** als die Standardgrenze meldet |
-| 4 | **Standard** | **960.000 Token** — gemessene Grenze (Kontextfenster 1 Mio. − 40.000 Antwort-Reserve) |
+| 4 | **Standard** | **962.000 Token** — gemessene Grenze (Kontextfenster 1 Mio. − 38.000 Antwort-Reserve) |
 
 Zusätzlich merkt sich das Skript den **größten je gesehenen Tokenstand** (`xdsTokenBadge.observedMax`) —
 **informativ**. Seit v1.2.5 hebt er die Grenze **nicht mehr** an: Ein Stand über der Grenze beweist kein
 größeres Fenster, denn die letzte erlaubte Antwort wächst über die Grenze hinaus (gemessen: 984.775 bei
-einer Grenze von 960.000 — Senden ist dort abgelehnt).
+einer Grenze von 962.000 — Senden ist dort abgelehnt).
 
 Der Tooltip nennt immer die benutzte Quelle, z. B.
-`Kontext 960.000 · gemessen: 960K (Kontextlimit) · Datei-Limit 890.880` oder
+`Kontext 962.000 · gemessen: 962K (Kontextlimit) · Datei-Limit 890.880` oder
 `Kontext 2.000.000 · manuell gesetzt (localStorage)`.
 
 **Grenze der Automatik:** Ein Abgleich mit der DeepSeek-Dokumentation findet nicht statt (das Skript

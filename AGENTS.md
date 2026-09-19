@@ -88,7 +88,7 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   SSE-Hinweis → zeigt, ob angenommen oder mit `context_length_exceeded` abgelehnt; `DS_FILL=<Zeichen>`
   sendet einen langen Prompt), `deepseek-probe-newchat.mjs` (prüft über mehrere Chats den Zustand des
   Senden-/Neuer-Chat-Buttons, zerstörungsfrei), `deepseek-verify-lengthlimit.mjs`
-  (**v1.2.5-Volltest:** injiziert die lokale Datei, erzwingt die Längenbegrenzung und prüft Nenner 960K,
+  (**v1.2.6-Volltest:** injiziert die lokale Datei, erzwingt die Längenbegrenzung und prüft Nenner 962K,
   `⚠` im Badge, Tooltip-Zeile mit Promptschätzung und den Merker `kind: "length"`).
   **Ablauf, Befehle und erwartete Checks: `memory/TESTEN-userscript-deepseek.md`**
 - Skills: `greasy-fork-publish`, `userscript-beschreibungen-immerzu`, `github-immerzu`,
@@ -118,12 +118,15 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   (`--hide-crash-restore-bubble`, `--no-first-run`, `--no-default-browser-check`) plus
   `resetProfileCrashFlag()` vor jedem Start (von `launchBrowser()` und allen `deepseek-*.mjs`
   aufgerufen). Neue Launcher müssen `args: BASE_ARGS` setzen.
-- **Kontextgrenze: 960.000 Token — GEMESSEN (Stand v1.2.5).** `CONTEXT_WINDOW = 960000`, Quelle im
-  Tooltip „gemessen: 960K (Kontextlimit)". Der Server lehnt das Senden ab, sobald **Kontextstand +
-  Promptlänge** 960.000 übersteigt; das Fenster selbst ist 1.000.000 (DeepSeek-Doku für V4
-  <https://api-docs.deepseek.com/news/news260424/>), die Differenz ist die 40.000-Token-Reserve für die
-  Antwort. Messreihe (16.09.2026, je ein Sendeversuch): 945.022 ✅ · 958.918 ✅ ·
-  **958.963 + ~13.350-Token-Prompt ❌** · 964.693 ❌ · 966.769 ❌ · 984.775 ❌.
+- **Kontextgrenze: 962.000 Token — GEMESSEN (Stand v1.2.6).** `CONTEXT_WINDOW = 962000`, Quelle im
+  Tooltip „gemessen: 962K (Kontextlimit)". Der Server lehnt das Senden ab, sobald **Kontextstand +
+  Promptlänge** 962.000 übersteigt; das Fenster selbst ist 1.000.000 (DeepSeek-Doku für V4
+  <https://api-docs.deepseek.com/news/news260424/>), die Differenz ist die 38.000-Token-Reserve für die
+  Antwort. **Feinmessung der Kante** (Chat `b934bbb2…`, 16.09.2026, je Sendeversuch, HTTP 200):
+  961.233 + 450 Tok. ✅ (Summe 961.683) · 961.703 + 230 Tok. ✅ (**Summe 961.933** = oberste bestätigte
+  Annahme) · 961.233 + 916 Tok. ❌ (**Summe 962.149** = unterste bestätigte Ablehnung).
+  Ältere Stützstellen: 945.022 ✅ · 958.918 ✅ · 959.813 ✅ · 958.963 + 13.350 ❌ ·
+  964.693 / 966.769 / 984.775 + Mini ❌.
   **Daraus folgt der wichtigste Merksatz:** Die Grenze hängt auch von der **Promptlänge** ab — ein
   langer Prompt löst die Meldung bei niedrigerem Badge-Stand aus (das war die Ursache der
   Nutzerbeobachtung „Meldung kommt schon bei 94 %"). Die Client-Settings
@@ -131,12 +134,15 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   nur ein **Datei-/History-Limit** (890.880) — wer das als Kontextgrenze einsetzt, bekommt Füllstände
   über 100 % (so passiert in v1.0.4–v1.1.1). Der Wert steht nur informativ im Tooltip und wird nur
   übernommen, wenn er größer als die Grenze ist.
+- **Promptgrößen-Schätzung: ~3,6 Zeichen je Token** (gemessen 843 Zeichen ≈ 230 Token, 3.043 ≈ 825,
+  30.042 ≈ 8.015). Der frühere Faktor 3,0 überschätzte die Promptgröße um ~20 % und wurde in v1.2.6
+  korrigiert.
 - **Formatierungsregel (Fallstrick aus v1.2.2/1.2.3):** `formatTokens` nutzt **immer** die feste
   1-Mio.-Schwelle für „M" (`if (n >= 1000000)`). Diese Schwelle darf **nicht** an `CONTEXT_WINDOW`
   gekoppelt werden — sonst erscheint ein Wert über der Grenze als „1,1M", während die Grenze selbst
-  „1M" heißt (Anzeige „1,1M / 1M (106 %)"). Richtig ist `967K / 960K (101 %)`.
+  „1M" heißt (Anzeige „1,1M / 1M (106 %)"). Richtig ist `967K / 962K (101 %)`.
 - **Nie die Grenze aus einem hohen Tokenstand ableiten (Lehre v1.2.5):** `noteObserved` hebt die Grenze
-  seit v1.2.5 **nicht mehr** an. Ein Stand über der Grenze (gemessen 984.775 > 960.000) beweist kein
+  seit v1.2.5 **nicht mehr** an. Ein Stand über der Grenze (gemessen 984.775 > 962.000) beweist kein
   größeres Fenster — die letzte erlaubte Antwort wächst über die Grenze hinaus, Senden ist dort
   abgelehnt. Alte Lerngrenzen mit der Quelle „aus Beobachtung" (typisch 1.000.000) werden beim Laden
   verworfen, sonst überschreiben sie die gemessene Grenze dauerhaft.
@@ -156,13 +162,13 @@ Userscript für den DeepSeek-Web-Chat: zeigt den Kontext-Füllstand (Token) als 
   deshalb lernt das Skript es. Priorität: `localStorage.xdsTokenBadge.limitOverride` (manuell) →
   `xdsTokenBadge.limit` (gelernt, sobald eine Nachricht den Status **`CONTEXT_LENGTH_EXCEEDED`** hat —
   dann gilt der zuletzt gültige Tokenstand als echte Grenze, funktioniert auch bei Verkleinerung) →
-  Settings-Limit nur wenn > 960K → Standard **960.000** (gemessene Grenze). `xdsTokenBadge.observedMax`
+  Settings-Limit nur wenn > 962K → Standard **962.000** (gemessene Grenze). `xdsTokenBadge.observedMax`
   merkt den größten Tokenstand nur noch **informativ** (keine Anhebung mehr, siehe oben).
   Der Tooltip nennt immer die Quelle. Wer an der Grenze arbeitet, muss diese Kette erhalten.
 - **Zwei Ablehnungsgründe unterscheiden (v1.2.5):** `MAX_MESSAGE_COUNT_REACHED` (Nachrichtenanzahl)
   und `context_length_exceeded` (Länge: Kontextstand + Prompt). Beide setzen `⚠` + Tooltip-Zeile,
   der Merker trägt `kind: 'messages' | 'length'`. Bei der Längenbegrenzung schätzt das Skript die
-  Promptgröße aus dem Request-Body (`promptTokensFromBody`, ~3 Zeichen je Token). Die Kontextgrenze
+  Promptgröße aus dem Request-Body (`promptTokensFromBody`, ~3,6 Zeichen je Token). Die Kontextgrenze
   wird in **beiden** Fällen nicht verändert. Fallstrick: Der DOM-Beobachter feuert zuerst und kennt
   die Promptgröße nicht — sie wird nachgetragen, sobald der Antwortstrom sie liefert.
 - **Badge-Bedienung (seit v1.0.7):** Das Badge hat `pointer-events: auto` (vorher `none`) und ist per

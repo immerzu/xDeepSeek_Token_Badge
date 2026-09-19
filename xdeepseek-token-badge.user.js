@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.2.5
+// @version      1.2.6
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -44,16 +44,18 @@
     const SETTINGS_FRAGMENT  = '/client/settings';
     const COMPLETION_FRAGMENT = '/chat/completion';   // SSE-Antwortstrom
     const SHARE_FRAGMENT     = '/share/content';      // geteilte Unterhaltung
-    // Kontextfenster des Modells — GEMESSEN am 16.09.2026 (v1.2.5).
-    // Der Server lehnt das Senden ab, sobald „Kontextstand + Promptlänge" 960.000 übersteigt
+    // Kontextgrenze des Modells — GEMESSEN am 16.09.2026 (v1.2.6).
+    // Der Server lehnt das Senden ab, sobald „Kontextstand + Promptlänge" 962.000 übersteigt
     // (SSE-Hinweis mit finish_reason "context_length_exceeded", DE: „Längenbegrenzung erreicht.
     // Bitte neuen Chat starten."). Das Fenster selbst ist 1.000.000 Token (DeepSeek V4,
-    // „1M context", https://api-docs.deepseek.com/news/news260424/); die Differenz von 40.000
+    // „1M context", https://api-docs.deepseek.com/news/news260424/); die Differenz von 38.000
     // ist die Reserve, die der Server für die Antwort freihält.
-    // Messreihe (jeweils Sendeversuch, HTTP 200, Entscheidung im SSE-Hinweis):
-    //   945.022 + Mini-Prompt  → angenommen      958.918 + Mini-Prompt  → angenommen
-    //   958.963 + ~13.350 Tok. → ABGELEHNT       964.693 + Mini-Prompt  → ABGELEHNT
-    //   966.769 + Mini-Prompt  → ABGELEHNT       984.775 + Mini-Prompt  → ABGELEHNT
+    // Kante im Chat b934bbb2… fein eingegrenzt (je Sendeversuch, HTTP 200, Entscheidung im SSE):
+    //   961.233 +  450 Tok. → angenommen  (Summe 961.683)
+    //   961.703 +  230 Tok. → angenommen  (Summe 961.933)  ← oberste bestätigte Annahme
+    //   961.233 +  916 Tok. → ABGELEHNT   (Summe 962.149)  ← unterste bestätigte Ablehnung
+    // Ältere Stützstellen: 945.022/958.918/959.813 + Mini → angenommen;
+    //   958.963 + 13.350 → ABGELEHNT;  964.693/966.769/984.775 + Mini → ABGELEHNT.
     // WICHTIG: Die Grenze gilt für Kontextstand + Prompt. Ein langer Prompt löst die Meldung
     // deshalb schon bei niedrigerem Badge-Stand aus — das Badge zeigt nur den Kontextstand
     // (das war die Ursache der Beobachtung „Meldung kommt schon bei 94 %").
@@ -61,8 +63,8 @@
     // NICHT das Kontextfenster und darf den Prozentsatz nicht bestimmen.
     // Die Formatierung (formatTokens) nutzt IMMER die feste 1-Mio.-Schwelle für „M", damit
     // Wert und Grenze nicht in verschiedenen Einheiten erscheinen („1,1M / 1M" war ein Fehler).
-    const CONTEXT_WINDOW = 960000;
-    const CONTEXT_SOURCE = 'gemessen: 960K (Kontextlimit)';
+    const CONTEXT_WINDOW = 962000;
+    const CONTEXT_SOURCE = 'gemessen: 962K (Kontextlimit)';
     const DEBUG              = false;    // true → Konsolen-Logs aktivieren
     const STORE_KEY          = 'xdsTokenBadge.sessionTokens';
     const POS_KEY            = 'xdsTokenBadge.position';
@@ -499,7 +501,7 @@
     // DeepSeek meldet das Kontextfenster NICHT als Feld. Es gibt aber ein verwertbares Signal:
     // erreicht eine Nachricht den Status CONTEXT_LENGTH_EXCEEDED, war das echte Limit erreicht.
     // Daraus lernt das Skript die Grenze und passt sie bei künftigen Änderungen selbst an.
-    // Priorität: manueller Override > gelernte Grenze > Settings (nur wenn > 960K) > gemessene 960K.
+    // Priorität: manueller Override > gelernte Grenze > Settings (nur wenn > 962K) > gemessene 962K.
     function readJson(key, fallback) {
         try {
             const raw = localStorage.getItem(key);
@@ -519,7 +521,7 @@
             // („aus Beobachtung"), sind nicht belastbar. Ein Stand über der Grenze entsteht,
             // weil die letzte erlaubte Antwort den Kontext darüber hinaus wachsen lässt —
             // senden kann man dort nicht mehr. Solche Altwerte (typisch 1.000.000) würden die
-            // gemessenen 960K dauerhaft überschreiben und deshalb verworfen.
+            // gemessenen 962K dauerhaft überschreiben und deshalb verworfen.
             if (/beobachtung/i.test(String(stored.source || ''))) {
                 console.warn('[TokenBadge] Alte Beobachtungs-Grenze verworfen:', stored.value, '(nicht belastbar)');
                 try { localStorage.removeItem(LIMIT_KEY); } catch (err) { /* ignore */ }
@@ -545,7 +547,7 @@
         log('Höchstwert beobachtet →', observedMax);
         // BEWUSST KEINE Anhebung der Grenze mehr (Änderung in v1.2.5): Ein Tokenstand über der
         // Grenze beweist KEIN größeres Fenster — die letzte erlaubte Antwort wächst über die
-        // Grenze hinaus (gemessen: 984.775 bei einer Grenze von 960.000; senden ist dort
+        // Grenze hinaus (gemessen: 984.775 bei einer Grenze von 962.000; senden ist dort
         // abgelehnt). Die Grenze stammt jetzt aus der Messung und wird nur noch durch ein
         // echtes CONTEXT_LENGTH_EXCEEDED (noteContextExceeded) oder einen Override geändert.
         if (tokens > contextSize) {
@@ -749,7 +751,7 @@
         const finite = candidates.filter((v) => Number.isFinite(v) && v > 0);
         fileLimit = finite.length ? Math.max.apply(null, finite) : null;
 
-        // Priorität: Override > gelernt > Settings (nur wenn > 960K) > gemessene 960K
+        // Priorität: Override > gelernt > Settings (nur wenn > 962K) > gemessene 962K
         const override = overrideLimit();
         let next = CONTEXT_WINDOW;
         let source = CONTEXT_SOURCE;
@@ -924,7 +926,8 @@
     }
 
     // Geschätzte Tokenzahl des gesendeten Prompts aus dem Request-Body.
-    // Gemessenes Verhältnis (16.09.2026): 40.044 Zeichen ≈ 13.350 Token ⇒ ~3 Zeichen je Token.
+    // Gemessenes Verhältnis (16.09.2026, Fülltext): 843 Zeichen ≈ 230 Token, 3.043 ≈ 825,
+    // 30.042 ≈ 8.015 ⇒ rund 3,6 Zeichen je Token (vorher 3,0 — das überschätzte die Promptgröße um ~20 %).
     // Nur eine Schätzung für den Tooltip-Hinweis — die Kontextgrenze wird davon NICHT berührt.
     function promptTokensFromBody(body) {
         try {
@@ -940,7 +943,7 @@
                 text = m[1];
             }
             const chars = text.length;
-            return chars > 0 ? Math.round(chars / 3) : null;
+            return chars > 0 ? Math.round(chars / 3.6) : null;
         } catch (err) { log('prompt tokens error', err); return null; }
     }
 
@@ -1172,5 +1175,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.2.5 geladen.');
+    log('xDeepSeek Token Badge v1.2.6 geladen.');
 })();

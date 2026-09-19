@@ -7,6 +7,37 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.2.6] — 2026-09-16
+
+### Behoben
+- **Kontextgrenze war um 2.000 Token zu niedrig angesetzt.** v1.2.5 setzte 960.000 (Fenster 1 Mio.
+  − 40.000 Reserve); diese Reserve war aber nur **geschätzt**. Die Kante wurde am 16.09.2026 im Chat
+  `b934bbb2-8724-4107-b8ec-f22794efe367` per Sendeversuchen fein eingegrenzt:
+
+  | Kontextstand | Prompt | Summe | Ergebnis |
+  |---|---|---|---|
+  | 961.233 | ~450 Token | 961.683 | ✅ angenommen |
+  | 961.703 | ~230 Token | **961.933** | ✅ angenommen ← oberste bestätigte Annahme |
+  | 961.233 | ~916 Token | **962.149** | ❌ `context_length_exceeded` ← unterste bestätigte Ablehnung |
+
+  **Fix:** `CONTEXT_WINDOW = 962000`, `CONTEXT_SOURCE = 'gemessen: 962K (Kontextlimit)'`
+  (Kontextfenster 1 Mio. − **38.000** Antwort-Reserve).
+- **Die Promptgrößen-Schätzung war ~20 % zu hoch.** Gemessen wurden rund **3,6 Zeichen je Token**
+  (843 Zeichen ≈ 230 Token · 3.043 ≈ 825 · 30.042 ≈ 8.015) statt der bisher angenommenen 3,0.
+  Der Tooltip nennt damit eine realistische Promptgröße.
+
+### Verifiziert
+- Kante im echten Chat (siehe Tabelle): oberste Annahme 961.933, unterste Ablehnung 962.149.
+  Ablehnungen sind spurlos (`clear_response: true`); der Chat blieb bei 961.955 stehen.
+- Mit injizierter v1.2.6 im selben Chat: Nenner `962K`, `⚠` im Badge, zweizeilige Tooltip-Warnung
+  ohne Umbruch (`wraps: 0`), Merker `kind: "length"`.
+
+### Hinweis
+- v1.2.5 (960.000) war in der Mechanik korrekt, im Nenner aber ~0,2 % zu niedrig.
+  Wer v1.2.5 installiert hat, sollte auf v1.2.6 aktualisieren.
+
+---
+
 ## [1.2.5] — 2026-09-16
 
 ### Behoben

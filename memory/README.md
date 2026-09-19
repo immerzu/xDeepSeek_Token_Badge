@@ -13,30 +13,35 @@ Dieser Ordner ist das dauerhafte Gedächtnis des Projekts. **Vor** Arbeiten am S
 
 ## Kurzfassung des aktuellen Stands
 
-- Skript **v1.2.5** ist auf Greasy Fork **live** (`https://greasyfork.org/de/scripts/595207.json`
-  → `version 1.2.5`, `code_updated 16.09.2026 10:47`), Quelle ist `main/xdeepseek-token-badge.user.js`,
-  Auto-Sync (periodisch, **kein Webhook**). Veröffentlicht am 16.09.2026 (Commit `ba0175d` gepusht +
-  `gf-admin-sync.mjs`).
-- Badge zeigt dreistellig gerundet: `📊 967K / 960K  (101 %)`; Details im **eigenen Tooltip**
+- Skript **v1.2.6** (Kontextgrenze 962.000) — Stand der Veröffentlichung siehe unten; v1.2.5 war am
+  16.09.2026 auf Greasy Fork live (`version 1.2.5`, `code_updated 16.09.2026 10:47`, Commit `ba0175d`
+  + `gf-admin-sync.mjs`), wurde aber durch die Feinmessung der Kante überholt.
+  Quelle ist `main/xdeepseek-token-badge.user.js`, Auto-Sync (periodisch, **kein Webhook**).
+- Badge zeigt dreistellig gerundet: `📊 967K / 962K  (101 %)`; Details im **eigenen Tooltip**
   (exakter Wert, Grenze + Quelle + Datei-Limit, Nachlade-Status).
 - **Blockierter Chat (⚠)** — DeepSeek lehnt aus **zwei** Gründen ab:
   1. **Nachrichtenlimit** (Anzahl): `MAX_MESSAGE_COUNT_REACHED` / „Nachrichtenlimit erreicht…"
   2. **Längenbegrenzung** (Kontextstand + Prompt > Fenster): `finish_reason: context_length_exceeded`,
      DE „Längenbegrenzung erreicht. Bitte neuen Chat starten." — seit **v1.2.5** erkannt, inklusive
-     geschätzter Promptgröße im Tooltip (`~3 Zeichen je Token`).
+     geschätzter Promptgröße im Tooltip (seit **v1.2.6** mit dem gemessenen Faktor **3,6 Zeichen/Token**
+     statt 3,0).
   Merker je Chat in `xdsTokenBadge.fullSessions` mit `kind: "messages" | "length"`.
   Die Kontextgrenze bleibt in beiden Fällen unverändert.
 - **Kontextgrenze ist lernfähig (v1.2.0):** Priorität Override (`xdsTokenBadge.limitOverride`) →
-  gelernt aus Status `CONTEXT_LENGTH_EXCEEDED` (`xdsTokenBadge.limit`) → Settings (nur wenn > 960K) →
-  Standard **960.000**. `xdsTokenBadge.observedMax` merkt den Höchstwert nur noch **informativ** —
+  gelernt aus Status `CONTEXT_LENGTH_EXCEEDED` (`xdsTokenBadge.limit`) → Settings (nur wenn > 962K) →
+  Standard **962.000**. `xdsTokenBadge.observedMax` merkt den Höchstwert nur noch **informativ** —
   seit v1.2.5 hebt er die Grenze **nicht mehr** an (ein Stand über der Grenze entsteht, weil die letzte
   erlaubte Antwort darüber hinaus wächst). Alte „aus Beobachtung"-Lerngrenzen werden verworfen.
-- **Kontextgrenze = 960.000 Token — GEMESSEN (v1.2.5).** Senden wird abgelehnt, sobald
-  **Kontextstand + Promptlänge** 960.000 übersteigt; das Fenster ist 1.000.000 (Doku für V4 „1M"),
-  die Differenz ist die 40.000-Token-Reserve für die Antwort. Messreihe: 945.022 ✅ · 958.918 ✅ ·
-  958.963 + ~13.350-Token-Prompt ❌ · 964.693 ❌ · 966.769 ❌ · 984.775 ❌.
+- **Kontextgrenze = 962.000 Token — GEMESSEN (v1.2.6).** Senden wird abgelehnt, sobald
+  **Kontextstand + Promptlänge** 962.000 übersteigt; das Fenster ist 1.000.000 (Doku für V4 „1M"),
+  die Differenz ist die 38.000-Token-Reserve für die Antwort.
+  **Feinmessung der Kante** (Chat `b934bbb2…`): 961.233 + 450 Tok. ✅ (961.683) ·
+  961.703 + 230 Tok. ✅ (**961.933** = oberste bestätigte Annahme) ·
+  961.233 + 916 Tok. ❌ (**962.149** = unterste bestätigte Ablehnung).
+  Ältere Stützstellen: 945.022 ✅ · 958.918 ✅ · 959.813 ✅ · 958.963 + ~13.350 ❌ ·
+  964.693 ❌ · 966.769 ❌ · 984.775 ❌.
   **Deshalb kann die Meldung „schon bei 94 %" erscheinen:** Das Badge zeigt nur den Kontextstand,
-  der Prompt zählt aber mit (945.022 + 20.000 ≈ 965.000 > 960.000). Bei 94,5 % mit **kurzem** Prompt
+  der Prompt zählt aber mit (945.022 + 20.000 ≈ 965.000 > 962.000). Bei 94,5 % mit **kurzem** Prompt
   wird anstandslos gesendet. Die Settings-Werte 890.880 sind **Datei-/History-Limits** und dürfen
   nicht als Kontextgrenze dienen.
 - **Formatierungsregel:** Die „M"-Schwelle in `formatTokens` ist **fest 1.000.000** — nie an die
