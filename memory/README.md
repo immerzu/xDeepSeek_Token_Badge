@@ -13,7 +13,7 @@ Dieser Ordner ist das dauerhafte Gedächtnis des Projekts. **Vor** Arbeiten am S
 
 ## Kurzfassung des aktuellen Stands
 
-- **OFFEN (16.09.2026): Greasy-Fork-Sync für v1.2.6/v1.2.7 steht aus** — GF lieferte beim Versuch HTTP 502/503 (Störung). GitHub ist aktuell (`4a1b39b`), GF zieht periodisch; sonst `gf-admin-sync.mjs` erneut auslösen und die Version prüfen.`n- Skript **v1.2.7** (Kontextgrenze 962.000, Prozentangabe ab 90 % rot) — Stand der Veröffentlichung siehe unten; v1.2.5 war am
+- **Greasy-Fork-Stand: v1.2.7 live** (`version 1.2.7`, `code_updated 19.09.2026 08:24`). Die Störung vom 16.09.2026 (HTTP 502/503) war temporär; der nachgeholte Sync verifizierte den Code (`CONTEXT_WINDOW = 962000`, `PCT_WARN = 90`, `#ff5252`, `xds-tokenbadge-pct`, `chars / 3.6`, `LENGTH_LIMIT_RE` — kein `960000`/`900000`) und die Zusatzinfos in DE/RU/EN (962.000 · 962 000 · 962,000, „90 %").`n- Skript **v1.2.7** (Kontextgrenze 962.000, Prozentangabe ab 90 % rot) — Stand der Veröffentlichung siehe unten; v1.2.5 war am
   16.09.2026 auf Greasy Fork live (`version 1.2.5`, `code_updated 16.09.2026 10:47`, Commit `ba0175d`
   + `gf-admin-sync.mjs`), wurde aber durch die Feinmessung der Kante überholt.
   Quelle ist `main/xdeepseek-token-badge.user.js`, Auto-Sync (periodisch, **kein Webhook**).

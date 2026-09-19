@@ -615,7 +615,7 @@ Merker `{"b934bbb2…":{"text":"Längenbegrenzung erreicht","kind":"length","pro
 
 ## 18. Offene Punkte
 
-- [ ] **GF-Sync für v1.2.6/v1.2.7 nachholen** (Greasy Fork lieferte am 16.09.2026 HTTP 502/503; GitHub-Stand `4a1b39b`). Prüfen: `https://greasyfork.org/de/scripts/595207.json` → `version`.
+- [x] ~~**GF-Sync für v1.2.6/v1.2.7 nachholen**~~ — erledigt am 19.09.2026: GF meldet `version 1.2.7`, Code und Zusatzinfos geprüft (Störung war HTTP 502/503).
 - [ ] Aktiven **Zweig** statt Maximum zählen (parent_id-Kette + `currentChildIndex`).
 - [ ] **Datei-Tokens** berücksichtigen (App addiert `getFilesTokenCount`).
 - [ ] Nach jedem `MERGE` wird die volle History geladen (Netzwerklast) — Alternative: IDB-Store
