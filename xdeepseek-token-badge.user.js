@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         xDeepSeek Token Badge
 // @namespace    https://greasyfork.org/de/users/1629833-immerzu
-// @version      1.2.7
+// @version      1.2.8
 // @description  Zeigt den aktuellen Kontext-Füllstand (Token) als schwebendes Badge im DeepSeek-Chat an.
 // @description:en  Shows the current context window usage (tokens) as a floating badge in the DeepSeek web chat.
 // @description:ru  Показывает текущий уровень заполнения контекстного окна (токены) в виде плавающего значка в веб-чате DeepSeek.
@@ -995,6 +995,9 @@
 
                 if (Number.isFinite(tokens) && tokens !== beforeTokens) {
                     refreshInfo = `ok (Versuch ${step}): ${tokens.toLocaleString()} Token`;
+                    // Status muss auch im offenen Tooltip erscheinen — sonst bliebe dort
+                    // "läuft …" stehen (v1.2.8: renderValue fehlte in diesem Zweig).
+                    renderValue(lastValue, lastStale);
                     log('Refresh ok nach Versuch', step, '→', tokens);
                     return;
                 }
@@ -1185,5 +1188,5 @@
         };
     }
 
-    log('xDeepSeek Token Badge v1.2.7 geladen.');
+    log('xDeepSeek Token Badge v1.2.8 geladen.');
 })();

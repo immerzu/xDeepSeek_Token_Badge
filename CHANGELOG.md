@@ -7,6 +7,23 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [1.2.8] — 2026-11-16
+
+### Behoben
+- **Die Tooltip-Zeile „Nachladen" blieb nach einer Antwort auf „läuft …" stehen**, obwohl der neue
+  Wert bereits im Badge stand. Ursache: Im Erfolgszweig von `refreshAfterAnswer` wurde
+  `refreshInfo` gesetzt, aber kein `renderValue()` aufgerufen — der schon sichtbare Tooltip behielt
+  den alten Text. Jetzt wird der Status sofort neu gerendert.
+
+### Verifiziert
+- Echter Chat `7dee662b-b00e-4284-94a1-06d698d29a4b` (v1.2.8 in Tampermonkey installiert):
+  Badge `📊 137 / 962K  (<1 %)`, Tooltip `Nachladen: ok (Versuch 1): 137 Token`
+  (vorher in v1.2.7 dauerhaft `läuft … (vorher 104)`).
+- Regression geprüft: Chatwechsel (`~75K` → `75K`), Prozentfarbe per Override (93 % rot), Werte
+  gegen `history_messages` (75 / 104 / 137 = Maximum aus `accumulated_token_usage`).
+
+---
+
 ## [1.2.7] — 2026-09-16
 
 ### Neu
