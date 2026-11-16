@@ -61,3 +61,25 @@ Dieser Ordner ist das dauerhafte Gedächtnis des Projekts. **Vor** Arbeiten am S
 - Nachrichtentexte liegen in `fragments`; die API kennt kein `content`/`reasoning_content`.
 - Versionskopien liegen in `!Ausgabe/` (gitignored), Namensschema
   `xdeepseek-token-badge-v<version>.user.js`.
+
+## Nachtrag v1.2.8 (2026-11-16)
+
+- **v1.2.8 live** (Commit `4703d3c`, GF 1.2.8, Release `v1.2.8`): Die Tooltip-Zeile „Nachladen"
+  blieb nach einer Antwort auf „läuft …" stehen, obwohl der Wert im Badge stand — im Erfolgszweig
+  von `refreshAfterAnswer` fehlte `renderValue()`; der bereits sichtbare Tooltip behielt den alten
+  Text. Belegt im echten Chat: `Nachladen: ok (Versuch 1): 137 Token`.
+- **Webseiten-Stand 16.11.2026 geprüft:** `/chat/history_messages`, `/chat/completion`,
+  `/share/content`, `/client/settings` unverändert; `accumulated_token_usage`/`biz_data`/
+  `cache_control` weiter vorhanden. Neu in den Daten: `chat_session.agent`/`current_message_id`/
+  `is_empty`/`seq_id`/`version`/`title_type`, Nachricht `conversation_mode`/`extra_search_providers`
+  (für das Skript ohne Belang). `/client/settings` liefert **ohne** `x-settings-token`-Header nur
+  `{}` — das Skript liest die App-Requests mit, deshalb steht 890.880 weiter im Tooltip.
+- **Testinfrastruktur hat sich geändert:** `C:\Users\lolo\.dsh\browser-tools\` (die `deepseek-*.mjs`
+  und `gf-admin-sync.mjs`) existiert **nicht mehr**. Test und Release laufen über den MCP-Browser
+  (Profil `Chrome for Testing\User Data`, Tampermonkey 5.5.1 + Better DeepSeek + AdGuard geladen):
+  TM-Update per Datei-Import (`options.html#nav=utils` → ask.html → „Update"), GF-Sync per
+  Admin-Button `update-and-sync`, GF-Version per DOM-Text (JSON-Endpunkt liefert 403).
+  Upload-Dateien für `browser_file_upload` müssen unter
+  `F:\001_Coding_Projekte\!Wichtiges\DSH_Update_Start_Dateien\.playwright-mcp\` liegen.
+- **Offener Nebenbefund (nicht geändert):** Bei „Neuer Chat" (URL `/`, noch ohne Session) bleibt der
+  Wert des vorherigen Chats stehen, statt `--` zu zeigen.
